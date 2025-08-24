@@ -23,38 +23,31 @@ add_executable(MicSoundbar src/main.cpp)
 # Указывание пути к заголовкам для конкретной цели
 target_include_directories(MicSoundbar PRIVATE
     ${CMAKE_SOURCE_DIR}/include/mpg123
-    ${CMAKE_SOURCE_DIR}/include/portaudio)   
+    ${CMAKE_SOURCE_DIR}/include/portaudio
+    ${CMAKE_SOURCE_DIR}/gui)   
 
 # Линковка библиотек
 target_link_libraries(MicSoundbar PRIVATE portaudio mpg123 winmm ole32 
     setupapi mmdevapi Shlwapi MicSoundbarGUI Qt6::Core Qt6::Widgets)
 
-# 
-target_include_directories(MicSoundbar PRIVATE
-    ${CMAKE_SOURCE_DIR}/include #
-    ${CMAKE_SOURCE_DIR}/gui #
-    ${Qt6Core_INCLUDE_DIRS} 
-    ${Qt6Widgets_INCLUDE_DIRS}
-)
-
 # Копирование необходимых Qt DLL файлов
 if(WIN32)
     add_custom_command(TARGET MicSoundbar POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            "C:/Qt/6.9.0/mingw_64/bin/Qt6Core.dll"
+            "$<TARGET_FILE:Qt6::Core>"
             $<TARGET_FILE_DIR:MicSoundbar>
         COMMAND ${CMAKE_COMMAND} -E copy
-            "C:/Qt/6.9.0/mingw_64/bin/Qt6Widgets.dll"  
+            "$<TARGET_FILE:Qt6::Gui>"
             $<TARGET_FILE_DIR:MicSoundbar>
         COMMAND ${CMAKE_COMMAND} -E copy
-            "C:/Qt/6.9.0/mingw_64/bin/Qt6Gui.dll"
+            "$<TARGET_FILE:Qt6::Widgets>"
             $<TARGET_FILE_DIR:MicSoundbar>
     )
     
     # Копирование папки plugins для работы Qt
     add_custom_command(TARGET MicSoundbar POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "C:/Qt/6.9.0/mingw_64/plugins"
+            "$ENV{QT_DIR}/plugins"
             "$<TARGET_FILE_DIR:MicSoundbar>/plugins"
     )
 endif()
