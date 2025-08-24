@@ -6,3 +6,5 @@
 
 # Папки
 build/
+.vscode/
+.cache/
