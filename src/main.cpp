@@ -8,6 +8,8 @@
 #include <portaudio.h>
 #include <QApplication>
 
+#include "mainwidget.h"
+
 template <typename T>
 void FreeBuffer(T *&ptr)
 {
@@ -33,6 +35,14 @@ void CleanUp(mpg123_handle *&mh, unsigned char *&buffer)
 
 int main(int argc, char *argv[])
 {
+
+    // Тестирование
+    QApplication a(argc, argv);
+    MainWidget w;
+    w.show();
+    return a.exec();
+    // Тестирование
+
     mpg123_handle *mh = nullptr;
     unsigned char *buffer = nullptr;
     size_t buffer_size = 0;

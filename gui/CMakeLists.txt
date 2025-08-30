@@ -8,9 +8,14 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 
 # Создаем GUI библиотеку
 add_library(MicSoundbarGUI STATIC
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
+    mainwidget.cpp
+    mainwidget.h
+    player_page.cpp
+    player_page.h
+    sound_file_widget.cpp
+    sound_file_widget.h
+    text_to_speech_page.cpp
+    text_to_speech_page.h
 )
 
 target_link_libraries(MicSoundbarGUI Qt6::Core Qt6::Widgets)
