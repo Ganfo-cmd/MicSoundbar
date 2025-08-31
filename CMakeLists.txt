@@ -22,8 +22,8 @@ add_executable(MicSoundbar src/main.cpp)
 
 # Указывание пути к заголовкам для конкретной цели
 target_include_directories(MicSoundbar PRIVATE
-    ${CMAKE_SOURCE_DIR}/include/mpg123
-    ${CMAKE_SOURCE_DIR}/include/portaudio
+    ${CMAKE_SOURCE_DIR}/import/mpg123
+    ${CMAKE_SOURCE_DIR}/import/portaudio
     ${CMAKE_SOURCE_DIR}/gui)   
 
 # Линковка библиотек
