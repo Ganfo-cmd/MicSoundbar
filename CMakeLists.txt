@@ -28,7 +28,7 @@ target_include_directories(MicSoundbar PRIVATE
 
 # Линковка библиотек
 target_link_libraries(MicSoundbar PRIVATE portaudio mpg123 winmm ole32 
-    setupapi mmdevapi Shlwapi MicSoundbarGUI Qt6::Core Qt6::Widgets)
+    setupapi mmdevapi Shlwapi MicSoundbarGUI)
 
 # Копирование необходимых Qt DLL файлов
 if(WIN32)

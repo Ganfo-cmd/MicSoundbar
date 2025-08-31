@@ -6,7 +6,7 @@
 // внешние библиотеки
 #include <mpg123.h>
 #include <portaudio.h>
-#include <QApplication>
+// #include <QApplication>
 
 #include "mainwidget.h"
 
@@ -15,7 +15,7 @@ void FreeBuffer(T *&ptr)
 {
     if (ptr)
     {
-        delete ptr;
+        delete[] ptr;
         ptr = nullptr;
     }
 }
@@ -33,14 +33,14 @@ void CleanUp(mpg123_handle *&mh, unsigned char *&buffer)
     FreeBuffer(buffer);
 }
 
-int main(int argc, char *argv[])
+int main(/*int argc, char *argv[]*/)
 {
 
     // Тестирование
-    QApplication a(argc, argv);
+    /*QApplication app(argc, argv);
     MainWidget w;
     w.show();
-    return a.exec();
+    return app.exec();*/
     // Тестирование
 
     mpg123_handle *mh = nullptr;
