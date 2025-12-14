@@ -18,13 +18,15 @@ link_directories(${CMAKE_SOURCE_DIR}/lib)
 add_subdirectory(gui)
 
 # Добавление исполняемого файла
-add_executable(MicSoundbar src/main.cpp)
+add_executable(MicSoundbar src/main.cpp src/mp3_decoder.cpp src/sound_player.cpp)
 
-# Указывание пути к заголовкам для конкретной цели
+# После add_executable
 target_include_directories(MicSoundbar PRIVATE
     ${CMAKE_SOURCE_DIR}/import/mpg123
     ${CMAKE_SOURCE_DIR}/import/portaudio
-    ${CMAKE_SOURCE_DIR}/gui)   
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/gui
+)
 
 # Линковка библиотек
 target_link_libraries(MicSoundbar PRIVATE portaudio mpg123 winmm ole32 

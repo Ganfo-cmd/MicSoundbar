@@ -26,7 +26,17 @@ add_library(MicSoundbarGUI STATIC
     ${GUI_Sources}
 )
 
-target_link_libraries(MicSoundbarGUI Qt6::Core Qt6::Widgets)
 target_include_directories(MicSoundbarGUI PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${Qt6Widgets_INCLUDE_DIRS})
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/import/mpg123    
+    ${CMAKE_SOURCE_DIR}/import/portaudio
+    ${Qt6Widgets_INCLUDE_DIRS}
+)
+
+target_link_libraries(MicSoundbarGUI 
+    Qt6::Core 
+    Qt6::Widgets
+    portaudio
+    mpg123
+)

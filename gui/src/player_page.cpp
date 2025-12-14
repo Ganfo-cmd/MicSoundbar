@@ -1,19 +1,15 @@
 #include "player_page.h"
 #include "sound_file_widget.h"
 
-#include <iostream> // тестирование
-
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 
-PlayerPage::PlayerPage(QWidget *parent) : QWidget(parent)
+PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(parent), sounds_list_(new QListWidget(this)), player_(player)
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setSpacing(0);
     layout->setContentsMargins(0, 0, 0, 0);
-
-    sounds_list_ = new QListWidget(this);
 
     QString list_style = R"(
     QListWidget::item:selected {
@@ -45,5 +41,5 @@ void PlayerPage::AddSound(const QString &name)
 
 void PlayerPage::PlaySound(const QString &sound_name)
 {
-    std::cout << sound_name.toStdString() << std::endl; // тестирование
+    player_.Play(sound_name.toStdString());
 }
