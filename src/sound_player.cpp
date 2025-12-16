@@ -1,10 +1,7 @@
 #include "sound_player.h"
 
-#include <chrono>
 #include <cstring>
-#include <iostream>
 #include <stdexcept>
-#include <thread>
 
 using namespace std::string_literals;
 
@@ -35,30 +32,46 @@ void FreeBuffer(T *&ptr)
 
 void SoundPlayer::Play(const std::string &file_path)
 {
-    if (stream_)
+    if (vb_stream_ || output_stream_)
     {
         Stop();
     }
 
     StreamInitialization(file_path.c_str());
 
-    const PaError pa_start_err = Pa_StartStream(stream_);
-    if (pa_start_err != paNoError)
+    const PaError vb_pa_start_err = Pa_StartStream(vb_stream_);
+    const PaError out_pa_start_err = Pa_StartStream(output_stream_);
+    if (vb_pa_start_err != paNoError || out_pa_start_err != paNoError)
     {
-        Pa_CloseStream(stream_);
-        stream_ = nullptr;
-        throw std::runtime_error("Failed to start audio stream. Error: "s + std::string(Pa_GetErrorText(pa_start_err)));
+        Pa_CloseStream(vb_stream_);
+        vb_stream_ = nullptr;
+
+        Pa_CloseStream(output_stream_);
+        output_stream_ = nullptr;
+        throw std::runtime_error("Failed to start audio stream."s);
     }
 }
 
 void SoundPlayer::Stop()
 {
-    if (stream_)
+    if (vb_stream_)
     {
-        if (Pa_IsStreamActive(stream_) == 1)
-            Pa_StopStream(stream_);
-        Pa_CloseStream(stream_);
-        stream_ = nullptr;
+        if (Pa_IsStreamActive(vb_stream_) == 1)
+        {
+            Pa_StopStream(vb_stream_);
+        }
+        Pa_CloseStream(vb_stream_);
+        vb_stream_ = nullptr;
+    }
+
+    if (output_stream_)
+    {
+        if (Pa_IsStreamActive(output_stream_) == 1)
+        {
+            Pa_StopStream(output_stream_);
+        }
+        Pa_CloseStream(output_stream_);
+        output_stream_ = nullptr;
     }
 }
 
@@ -78,11 +91,16 @@ void SoundPlayer::StreamInitialization(const char *file_path)
     int channels = 0;
     try
     {
-        decoder_ = std::make_unique<MP3Decoder>();
+        vb_decoder_ = std::make_unique<MP3Decoder>();
 
-        decoder_->OpenFile(file_path);
-        decoder_->GetFormat(rate, channels);
-        decoder_->SetOutputFormat(rate, channels);
+        vb_decoder_->OpenFile(file_path);
+        vb_decoder_->GetFormat(rate, channels);
+        vb_decoder_->SetOutputFormat(rate, channels);
+
+        output_decoder_ = std::make_unique<MP3Decoder>();
+
+        output_decoder_->OpenFile(file_path);
+        output_decoder_->SetOutputFormat(rate, channels);
         channels_ = channels;
     }
     catch (const std::exception &)
@@ -99,39 +117,81 @@ void SoundPlayer::StreamInitialization(const char *file_path)
             .suggestedLatency = Pa_GetDeviceInfo(vb_cabel_index)->defaultLowOutputLatency,
             .hostApiSpecificStreamInfo = nullptr};
 
+    int output_device_index = Pa_GetDefaultOutputDevice();
+    PaStreamParameters output_parameters2 =
+        {
+            .device = output_device_index,
+            .channelCount = channels,
+            .sampleFormat = paInt16,
+            .suggestedLatency = Pa_GetDeviceInfo(output_device_index)->defaultLowOutputLatency,
+            .hostApiSpecificStreamInfo = nullptr};
+
     const PaError pa_format_err = Pa_IsFormatSupported(nullptr, &output_parameters, rate);
     if (pa_format_err != paNoError)
     {
         throw std::runtime_error("The format is not supported. Error: "s + std::string(Pa_GetErrorText(pa_format_err)));
     }
 
-    const PaError pa_open_err = Pa_OpenStream(
-        &stream_,
+    const unsigned long FRAMES_PER_BUFFER = 1024;
+
+    const PaError vb_pa_open_err = Pa_OpenStream(
+        &vb_stream_,
         nullptr,
         &output_parameters,
         rate,
-        paFramesPerBufferUnspecified,
+        FRAMES_PER_BUFFER,
         paClipOff,
-        &SoundPlayer::PaCallback,
+        &SoundPlayer::VBPaCallback,
         this);
 
-    if (pa_open_err != paNoError)
+    const PaError out_pa_open_err = Pa_OpenStream(
+        &output_stream_,
+        nullptr,
+        &output_parameters2,
+        rate,
+        FRAMES_PER_BUFFER,
+        paClipOff,
+        &SoundPlayer::OutputPaCallback,
+        this);
+
+    if (vb_pa_open_err != paNoError || out_pa_open_err != paNoError)
     {
-        throw std::runtime_error("Failed to open audio stream. Error: "s + std::string(Pa_GetErrorText(pa_open_err)));
+        throw std::runtime_error("Failed to open audio stream."s);
     }
 }
 
-int SoundPlayer::PaCallback(const void *inputBuffer,
-                            void *outputBuffer,
-                            unsigned long framesPerBuffer,
-                            const PaStreamCallbackTimeInfo *,
-                            PaStreamCallbackFlags,
-                            void *userData)
+int SoundPlayer::VBPaCallback(const void *inputBuffer,
+                              void *outputBuffer,
+                              unsigned long framesPerBuffer,
+                              const PaStreamCallbackTimeInfo *timeInfo,
+                              PaStreamCallbackFlags,
+                              void *userData)
 {
     auto *player = static_cast<SoundPlayer *>(userData);
 
     size_t bytesRead = 0;
-    int err = player->decoder_->ReadFile(
+    int err = player->vb_decoder_->ReadFile(
+        reinterpret_cast<unsigned char *>(outputBuffer),
+        framesPerBuffer * player->channels_ * sizeof(short),
+        bytesRead);
+
+    if (err == MPG123_DONE)
+        return paComplete;
+
+    return paContinue;
+}
+
+int SoundPlayer::OutputPaCallback(const void *inputBuffer,
+                                  void *outputBuffer,
+                                  unsigned long framesPerBuffer,
+                                  const PaStreamCallbackTimeInfo *timeInfo,
+                                  PaStreamCallbackFlags,
+                                  void *userData)
+{
+    auto *player = static_cast<SoundPlayer *>(userData);
+
+    size_t bytesRead = 0;
+    int err = player->output_decoder_->ReadFile(
         reinterpret_cast<unsigned char *>(outputBuffer),
         framesPerBuffer * player->channels_ * sizeof(short),
         bytesRead);
