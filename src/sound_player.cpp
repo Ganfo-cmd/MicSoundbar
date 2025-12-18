@@ -75,9 +75,16 @@ void SoundPlayer::Stop()
     }
 }
 
-void SoundPlayer::SetVolume()
+void SoundPlayer::SetVBVolume(float volume_level)
 {
-    // заглушка
+    std::lock_guard<std::mutex> lock(vb_volume_mutex_);
+    vb_volume_ = volume_level;
+}
+
+void SoundPlayer::SetOutVolume(float volume_level)
+{
+    std::lock_guard<std::mutex> lock(out_volume_mutex_);
+    output_volume_ = volume_level;
 }
 
 bool SoundPlayer::IsPlaying() const
@@ -163,20 +170,34 @@ void SoundPlayer::StreamInitialization(const char *file_path)
 int SoundPlayer::VBPaCallback(const void *inputBuffer,
                               void *outputBuffer,
                               unsigned long framesPerBuffer,
-                              const PaStreamCallbackTimeInfo *timeInfo,
+                              const PaStreamCallbackTimeInfo *,
                               PaStreamCallbackFlags,
                               void *userData)
 {
     auto *player = static_cast<SoundPlayer *>(userData);
+    short *out = static_cast<short *>(outputBuffer);
+    size_t samples_needed = framesPerBuffer * player->channels_;
 
-    size_t bytesRead = 0;
+    size_t bytes_read = 0;
     int err = player->vb_decoder_->ReadFile(
-        reinterpret_cast<unsigned char *>(outputBuffer),
-        framesPerBuffer * player->channels_ * sizeof(short),
-        bytesRead);
+        reinterpret_cast<unsigned char *>(out),
+        samples_needed * sizeof(short),
+        bytes_read);
+
+    float volume;
+    {
+        std::lock_guard<std::mutex> lock(player->vb_volume_mutex_);
+        volume = player->vb_volume_;
+    }
+
+    size_t samples_read = bytes_read / sizeof(short);
+    player->ChangeVolume(out, samples_needed, volume);
 
     if (err == MPG123_DONE)
+    {
+        std::memset(out + samples_read, 0, (samples_needed - samples_read) * sizeof(short));
         return paComplete;
+    }
 
     return paContinue;
 }
@@ -184,22 +205,53 @@ int SoundPlayer::VBPaCallback(const void *inputBuffer,
 int SoundPlayer::OutputPaCallback(const void *inputBuffer,
                                   void *outputBuffer,
                                   unsigned long framesPerBuffer,
-                                  const PaStreamCallbackTimeInfo *timeInfo,
+                                  const PaStreamCallbackTimeInfo *,
                                   PaStreamCallbackFlags,
                                   void *userData)
 {
     auto *player = static_cast<SoundPlayer *>(userData);
+    short *out = static_cast<short *>(outputBuffer);
+    size_t samples_needed = framesPerBuffer * player->channels_;
 
-    size_t bytesRead = 0;
+    size_t bytes_read = 0;
     int err = player->output_decoder_->ReadFile(
-        reinterpret_cast<unsigned char *>(outputBuffer),
-        framesPerBuffer * player->channels_ * sizeof(short),
-        bytesRead);
+        reinterpret_cast<unsigned char *>(out),
+        samples_needed * sizeof(short),
+        bytes_read);
+
+    float volume;
+    {
+        std::lock_guard<std::mutex> lock(player->out_volume_mutex_);
+        volume = player->output_volume_;
+    }
+
+    size_t samples_read = bytes_read / sizeof(short);
+    player->ChangeVolume(out, samples_read, volume);
 
     if (err == MPG123_DONE)
+    {
+        std::memset(out + samples_read, 0, (samples_needed - samples_read) * sizeof(short));
         return paComplete;
+    }
 
     return paContinue;
+}
+
+void SoundPlayer::ChangeVolume(short *buffer, size_t num_samples, float volume)
+{
+    for (size_t i = 0; i < num_samples; ++i)
+    {
+        float scaled = static_cast<float>(buffer[i]) * volume;
+        if (scaled > 32767.0f)
+        {
+            scaled = 32767.0f;
+        }
+        else if (scaled < -32768.0f)
+        {
+            scaled = -32768.0f;
+        }
+        buffer[i] = static_cast<short>(scaled);
+    }
 }
 
 int SoundPlayer::GetDeviceIndex() const
