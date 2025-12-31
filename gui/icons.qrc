@@ -1,0 +1,9 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource prefix="/">
+    <file>icons/microphone.png</file>
+    <file>icons/headphone.png</file>
+    <file>icons/headphones_off.png</file>
+    <file>icons/microphone_muted.png</file>
+  </qresource>
+</RCC>

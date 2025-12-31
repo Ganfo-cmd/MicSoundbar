@@ -5,6 +5,7 @@
 
 #include <QWidget>
 #include <QListWidget>
+#include <QPushButton>
 
 class PlayerPage : public QWidget
 {
@@ -21,10 +22,25 @@ signals:
 
 private slots:
     void PlaySound(const QString &sound_name);
+    void ChangeMicVolume(int volume);
+    void ChangeHeadphoneVolume(int volume);
 
 private:
     QListWidget *sounds_list_ = nullptr;
     AudioInterfacePlayer &player_;
+    QWidget *toolbar_widget_ = nullptr;
+
+    QSlider *mic_slider_ = nullptr;
+    QPushButton *mic_button_ = nullptr;
+    QIcon icon_microphone_;
+    QIcon icon_microphone_muted_;
+    bool mic_muted_ = false;
+
+    QSlider *headphones_slider_ = nullptr;
+    QPushButton *headphones_button_ = nullptr;
+    QIcon icon_headphones_;
+    QIcon icon_headphones_muted_;
+    bool headphones_muted_ = false;
 };
 
 #endif // PLAYER_PAGE_H

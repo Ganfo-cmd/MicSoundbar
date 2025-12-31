@@ -191,11 +191,12 @@ int SoundPlayer::VBPaCallback(const void *inputBuffer,
     }
 
     size_t samples_read = bytes_read / sizeof(short);
-    player->ChangeVolume(out, samples_needed, volume);
+    player->ChangeVolume(out, samples_read, volume);
 
     if (err == MPG123_DONE)
     {
-        std::memset(out + samples_read, 0, (samples_needed - samples_read) * sizeof(short));
+        std::memset(out + samples_read, 0,
+                    (samples_needed - samples_read) * sizeof(short));
         return paComplete;
     }
 
@@ -230,7 +231,8 @@ int SoundPlayer::OutputPaCallback(const void *inputBuffer,
 
     if (err == MPG123_DONE)
     {
-        std::memset(out + samples_read, 0, (samples_needed - samples_read) * sizeof(short));
+        std::memset(out + samples_read, 0,
+                    (samples_needed - samples_read) * sizeof(short));
         return paComplete;
     }
 

@@ -24,6 +24,8 @@ set(GUI_Sources
 add_library(MicSoundbarGUI STATIC
     ${GUI_Headers}
     ${GUI_Sources}
+    icons.qrc
+
 )
 
 target_include_directories(MicSoundbarGUI PUBLIC 
