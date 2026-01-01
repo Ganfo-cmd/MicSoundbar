@@ -26,8 +26,8 @@ private:
     std::unique_ptr<MP3Decoder> vb_decoder_;
     std::unique_ptr<MP3Decoder> output_decoder_;
 
-    float vb_volume_ = 0.5f;
-    float output_volume_ = 0.5f;
+    float vb_volume_ = 0.1f;
+    float output_volume_ = 0.1f;
     mutable std::mutex vb_volume_mutex_;
     mutable std::mutex out_volume_mutex_;
 
