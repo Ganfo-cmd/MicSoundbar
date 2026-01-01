@@ -38,6 +38,7 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     mic_slider_->setRange(0, 100);
     mic_slider_->setOrientation(Qt::Horizontal);
     mic_slider_->setFixedSize(150, 22);
+    mic_slider_->setValue(10);
     mic_volume_control_layout->addWidget(mic_button_, 0, Qt::AlignVCenter);
     mic_volume_control_layout->addWidget(mic_slider_, 0, Qt::AlignVCenter);
 
@@ -52,9 +53,15 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     QObject::connect(mic_button_, &QPushButton::clicked, this, [this]()
                      {
         if(mic_muted_)
+        {
             mic_button_->setIcon(icon_microphone_);
+            MicrophoneON();
+        }
         else
+        {
             mic_button_->setIcon(icon_microphone_muted_);
+            MicrophoneOFF();
+        }
         mic_muted_ = !mic_muted_; });
 
     headphones_button_ = new QPushButton;
@@ -66,6 +73,7 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     headphones_slider_->setRange(0, 100);
     headphones_slider_->setOrientation(Qt::Horizontal);
     headphones_slider_->setFixedSize(150, 22);
+    headphones_slider_->setValue(10);
     headphones_volume_control_layout->addWidget(headphones_button_, 0, Qt::AlignVCenter);
     headphones_volume_control_layout->addWidget(headphones_slider_, 0, Qt::AlignVCenter);
 
@@ -80,9 +88,15 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     QObject::connect(headphones_button_, &QPushButton::clicked, this, [this]()
                      {
         if(headphones_muted_)
+        {
             headphones_button_->setIcon(icon_headphones_);
+            HeadphoneON();
+        }
         else
+        {
             headphones_button_->setIcon(icon_headphones_muted_);
+            HeadphoneOFF();
+        }
         headphones_muted_ = !headphones_muted_; });
 
     volume_control_layout->addLayout(mic_volume_control_layout);
@@ -146,4 +160,26 @@ void PlayerPage::ChangeMicVolume(int volume)
 void PlayerPage::ChangeHeadphoneVolume(int volume)
 {
     player_.SetOutVolume(volume * 1.0f / 100);
+}
+
+void PlayerPage::MicrophoneON()
+{
+    float volume = mic_slider_->value() * 1.0f / 100;
+    player_.SetVBVolume(volume);
+}
+
+void PlayerPage::MicrophoneOFF()
+{
+    player_.SetVBVolume(0.0f);
+}
+
+void PlayerPage::HeadphoneON()
+{
+    float volume = headphones_slider_->value() * 1.0f / 100;
+    player_.SetOutVolume(volume);
+}
+
+void PlayerPage::HeadphoneOFF()
+{
+    player_.SetOutVolume(0.0f);
 }

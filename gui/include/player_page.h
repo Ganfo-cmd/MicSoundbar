@@ -25,6 +25,11 @@ private slots:
     void ChangeMicVolume(int volume);
     void ChangeHeadphoneVolume(int volume);
 
+    void MicrophoneON();
+    void MicrophoneOFF();
+    void HeadphoneON();
+    void HeadphoneOFF();
+
 private:
     QListWidget *sounds_list_ = nullptr;
     AudioInterfacePlayer &player_;
