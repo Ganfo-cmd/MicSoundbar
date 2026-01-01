@@ -9,6 +9,7 @@
 
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(parent), /*sounds_list_(new QListWidget(this)),*/ player_(player)
 {
+    Q_INIT_RESOURCE(icons);
     // Создание основного компоновщика
     QVBoxLayout *main_layout = new QVBoxLayout(this);
     main_layout->setSpacing(0);
