@@ -4,6 +4,7 @@
 #include "interface_player.h"
 
 #include <QWidget>
+#include <QCheckBox>
 #include <QListWidget>
 #include <QPushButton>
 
@@ -34,6 +35,9 @@ private:
     QListWidget *sounds_list_ = nullptr;
     AudioInterfacePlayer &player_;
     QWidget *toolbar_widget_ = nullptr;
+
+    bool sync_enable_ = false;
+    QCheckBox *sync_volume_checkbox_ = nullptr;
 
     QSlider *mic_slider_ = nullptr;
     QPushButton *mic_button_ = nullptr;

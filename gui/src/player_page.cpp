@@ -24,6 +24,13 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     QLabel *leftpath = new QLabel("Left path");
     toolbar_layout->addWidget(leftpath);
 
+    sync_volume_checkbox_ = new QCheckBox("Синхронизация звука");
+    sync_volume_checkbox_->setChecked(false);
+    toolbar_layout->addWidget(sync_volume_checkbox_);
+
+    connect(sync_volume_checkbox_, &QCheckBox::toggled, this, [this](bool enable)
+            { sync_enable_ = enable; });
+
     QVBoxLayout *volume_control_layout = new QVBoxLayout;
 
     QHBoxLayout *mic_volume_control_layout = new QHBoxLayout;
@@ -45,10 +52,8 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
 
     connect(mic_slider_, &QSlider::sliderMoved, this, [this](int value)
             {
-        QPoint pos = mic_slider_->mapToGlobal(
-            QPoint(mic_slider_->width() / 2 - 10, -10)
-            );
-        QToolTip::showText(pos, QString("%1").arg(value), mic_slider_); });
+                QPoint pos = mic_slider_->mapToGlobal(QPoint(mic_slider_->width() / 2 - 10, -10));
+                QToolTip::showText(pos, QString("%1").arg(value), mic_slider_); });
 
     mic_muted_ = false;
     QObject::connect(mic_button_, &QPushButton::clicked, this, [this]()
@@ -80,10 +85,8 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
 
     connect(headphones_slider_, &QSlider::sliderMoved, this, [this](int value)
             {
-        QPoint pos = headphones_slider_->mapToGlobal(
-            QPoint(headphones_slider_->width() / 2 - 10, -10)
-            );
-        QToolTip::showText(pos, QString("%1").arg(value), headphones_slider_); });
+                QPoint pos = headphones_slider_->mapToGlobal(QPoint(headphones_slider_->width() / 2 - 10, -10));
+                QToolTip::showText(pos, QString("%1").arg(value), headphones_slider_); });
 
     headphones_muted_ = false;
     QObject::connect(headphones_button_, &QPushButton::clicked, this, [this]()
@@ -155,12 +158,42 @@ void PlayerPage::PlaySound(const QString &sound_name)
 
 void PlayerPage::ChangeMicVolume(int volume)
 {
-    player_.SetVBVolume(volume * 1.0f / 100);
+    float float_volume = volume * 1.0f / 100;
+    if (sync_enable_)
+    {
+        QSignalBlocker bloker(headphones_slider_);
+        headphones_slider_->setValue(volume);
+
+        if (!headphones_muted_)
+        {
+            player_.SetOutVolume(float_volume);
+        }
+    }
+
+    if (!mic_muted_)
+    {
+        player_.SetVBVolume(float_volume);
+    }
 }
 
 void PlayerPage::ChangeHeadphoneVolume(int volume)
 {
-    player_.SetOutVolume(volume * 1.0f / 100);
+    float float_volume = volume * 1.0f / 100;
+    if (sync_enable_)
+    {
+        QSignalBlocker bloker(mic_slider_);
+        mic_slider_->setValue(volume);
+
+        if (!mic_muted_)
+        {
+            player_.SetVBVolume(float_volume);
+        }
+    }
+
+    if (!headphones_muted_)
+    {
+        player_.SetOutVolume(float_volume);
+    }
 }
 
 void PlayerPage::MicrophoneON()
