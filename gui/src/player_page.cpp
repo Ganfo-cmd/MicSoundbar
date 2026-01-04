@@ -2,10 +2,6 @@
 #include "sound_file_widget.h"
 
 #include <QVBoxLayout>
-#include <QLabel>
-#include <QPushButton>
-#include <QToolTip>
-#include <QIcon>
 
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(parent), /*sounds_list_(new QListWidget(this)),*/ player_(player)
 {
@@ -50,12 +46,26 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     mic_volume_control_layout->addWidget(mic_button_, 0, Qt::AlignVCenter);
     mic_volume_control_layout->addWidget(mic_slider_, 0, Qt::AlignVCenter);
 
-    connect(mic_slider_, &QSlider::sliderMoved, this, [this](int value)
-            {
-                QPoint pos = mic_slider_->mapToGlobal(QPoint(mic_slider_->width() / 2 - 10, -10));
-                QToolTip::showText(pos, QString("%1").arg(value), mic_slider_); });
+    mic_volume_label_ = new QLabel(this);
+    mic_volume_label_->hide();
+    mic_volume_label_->setFixedSize(28, 18);
+    mic_volume_label_->setAlignment(Qt::AlignCenter);
+    mic_volume_label_->setStyleSheet(R"(
+    QLabel {
+        background-color: white;
+        color: rgba(138, 138, 138, 1);
+        font-size: 11px;
+        })");
 
-    mic_muted_ = false;
+    connect(mic_slider_, &QSlider::sliderPressed, this, [this]()
+            { UpdateMicVolumeLabel(mic_slider_->value()); });
+
+    connect(mic_slider_, &QSlider::sliderMoved, this, [this](int value)
+            { UpdateMicVolumeLabel(value); });
+
+    connect(mic_slider_, &QSlider::sliderReleased, this, [this]()
+            { mic_volume_label_->hide(); });
+
     QObject::connect(mic_button_, &QPushButton::clicked, this, [this]()
                      {
         if(mic_muted_)
@@ -83,12 +93,26 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     headphones_volume_control_layout->addWidget(headphones_button_, 0, Qt::AlignVCenter);
     headphones_volume_control_layout->addWidget(headphones_slider_, 0, Qt::AlignVCenter);
 
-    connect(headphones_slider_, &QSlider::sliderMoved, this, [this](int value)
-            {
-                QPoint pos = headphones_slider_->mapToGlobal(QPoint(headphones_slider_->width() / 2 - 10, -10));
-                QToolTip::showText(pos, QString("%1").arg(value), headphones_slider_); });
+    headphone_volume_label_ = new QLabel(this);
+    headphone_volume_label_->hide();
+    headphone_volume_label_->setFixedSize(28, 18);
+    headphone_volume_label_->setAlignment(Qt::AlignCenter);
+    headphone_volume_label_->setStyleSheet(R"(
+    QLabel {
+        background-color: white;
+        color: rgba(138, 138, 138, 1);
+        font-size: 11px;
+        })");
 
-    headphones_muted_ = false;
+    connect(headphones_slider_, &QSlider::sliderPressed, this, [this]()
+            { UpdateHeadphoneVolumeLabel(headphones_slider_->value()); });
+
+    connect(headphones_slider_, &QSlider::sliderMoved, this, [this](int value)
+            { UpdateHeadphoneVolumeLabel(value); });
+
+    connect(headphones_slider_, &QSlider::sliderReleased, this, [this]()
+            { headphone_volume_label_->hide(); });
+
     QObject::connect(headphones_button_, &QPushButton::clicked, this, [this]()
                      {
         if(headphones_muted_)
@@ -216,4 +240,50 @@ void PlayerPage::HeadphoneON()
 void PlayerPage::HeadphoneOFF()
 {
     player_.SetOutVolume(0.0f);
+}
+
+void PlayerPage::UpdateMicVolumeLabel(int value)
+{
+    QStyleOptionSlider slider_opt;
+    slider_opt.initFrom(mic_slider_);
+    slider_opt.minimum = mic_slider_->minimum();
+    slider_opt.maximum = mic_slider_->maximum();
+    slider_opt.sliderPosition = value;
+    slider_opt.sliderValue = value;
+
+    QRect handle_rect = mic_slider_->style()->subControlRect(
+        QStyle::CC_Slider,
+        &slider_opt,
+        QStyle::SC_SliderHandle,
+        mic_slider_);
+
+    QPoint pos = mic_slider_->mapToParent(handle_rect.center());
+    pos.setY(pos.y() - 20);
+
+    mic_volume_label_->move(pos.x() - mic_volume_label_->width() / 2, pos.y());
+    mic_volume_label_->setText(QString::number(value));
+    mic_volume_label_->show();
+}
+
+void PlayerPage::UpdateHeadphoneVolumeLabel(int value)
+{
+    QStyleOptionSlider slider_opt;
+    slider_opt.initFrom(headphones_slider_);
+    slider_opt.minimum = headphones_slider_->minimum();
+    slider_opt.maximum = headphones_slider_->maximum();
+    slider_opt.sliderPosition = value;
+    slider_opt.sliderValue = value;
+
+    QRect handle_rect = headphones_slider_->style()->subControlRect(
+        QStyle::CC_Slider,
+        &slider_opt,
+        QStyle::SC_SliderHandle,
+        headphones_slider_);
+
+    QPoint pos = headphones_slider_->mapToParent(handle_rect.center());
+    pos.setY(pos.y() - headphones_slider_->height());
+
+    headphone_volume_label_->move(pos.x() - headphone_volume_label_->width() / 2, pos.y());
+    headphone_volume_label_->setText(QString::number(value));
+    headphone_volume_label_->show();
 }
