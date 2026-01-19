@@ -13,7 +13,7 @@ class MainWidget : public QWidget
     Q_OBJECT
 
 public:
-    MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo> vect, QWidget *parent = nullptr);
+    MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo> &media_files, QWidget *parent = nullptr);
     ~MainWidget() = default;
 
 private:

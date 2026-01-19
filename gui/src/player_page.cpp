@@ -1,9 +1,12 @@
 #include "player_page.h"
-#include "sound_file_widget.h"
+#include "sound_table_model.h"
+#include "play_button_delegate.h"
 
 #include <QVBoxLayout>
+#include <QTableView>
+#include <QHeaderView>
 
-PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(parent), /*sounds_list_(new QListWidget(this)),*/ player_(player)
+PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo> &media_files, QWidget *parent) : QWidget(parent), /*sounds_list_(new QListWidget(this)),*/ player_(player)
 {
     Q_INIT_RESOURCE(icons);
     // Создание основного компоновщика
@@ -141,38 +144,35 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, QWidget *parent) : QWidget(
     layout->setSpacing(0);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    QString list_style = R"(
-    QListWidget {
-        background: transparent;
-        border: none;
-    }
-    QListWidget::item:selected {
-        background: rgb(200, 200, 200);
-    }
-    QListWidget::item:hover {
-        background: rgb(200, 200, 200);
-    })";
-    sounds_list_ = new QListWidget(this);
+    SoundTableModel *table_model = new SoundTableModel(this);
+    table_model->SetFiles(media_files);
 
-    sounds_list_->setStyleSheet(list_style);
-    layout->addWidget(sounds_list_);
+    QTableView *table_view = new QTableView(this);
+    table_view->setModel(table_model);
+
+    PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
+    table_view->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
+
+    connect(play_button_delegate, &PlayButtonDelegate::PlaySound, this,
+            [this, table_model](int row)
+            {
+                const MediaInfo &info = table_model->GetFileInfo(row);
+                player_.Play(info.path);
+            });
+
+    table_view->horizontalHeader()->setSectionResizeMode(ColumnPlayButton, QHeaderView::Fixed);
+    table_view->setColumnWidth(ColumnPlayButton, 20);
+    table_view->setColumnWidth(ColumnName, 500);
+
+    table_view->horizontalHeader()->setStretchLastSection(true);
+    table_view->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table_view->setSelectionMode(QAbstractItemView::SingleSelection);
+    table_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    layout->addWidget(table_view);
     main_layout->addLayout(layout);
 
     connect(this, &PlayerPage::PlaySoundSignal, this, &PlayerPage::PlaySound);
-}
-
-void PlayerPage::AddSound(const QString &name)
-{
-
-    SoundFileWidget *sound_file = new SoundFileWidget(this, name);
-
-    QListWidgetItem *item = new QListWidgetItem(sounds_list_);
-    item->setSizeHint(sound_file->sizeHint());
-
-    sounds_list_->setItemWidget(item, sound_file);
-
-    connect(sound_file, &SoundFileWidget::PlaySound, this,
-            &PlayerPage::PlaySoundSignal);
 }
 
 void PlayerPage::PlaySound(const QString &sound_name)

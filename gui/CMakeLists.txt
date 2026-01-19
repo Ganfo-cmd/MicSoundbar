@@ -9,15 +9,17 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 set(GUI_Headers 
     include/mainwidget.h
     include/player_page.h
-    include/sound_file_widget.h
     include/text_to_speech_page.h
+    include/sound_table_model.h
+    include/play_button_delegate.h
 )
 
 set(GUI_Sources
     src/mainwidget.cpp
     src/player_page.cpp
-    src/sound_file_widget.cpp
     src/text_to_speech_page.cpp
+    src/sound_table_model.cpp
+    src/play_button_delegate.cpp
 )
 
 # Создаем GUI библиотеку

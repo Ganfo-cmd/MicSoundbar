@@ -99,7 +99,7 @@ double MP3Decoder::GetDuration(const std::string &file_path)
     {
         if (mpg123_scan(mh) == MPG123_OK)
         {
-            samples = mpg123_length(mh); ///
+            samples = mpg123_length(mh);
         }
     }
 

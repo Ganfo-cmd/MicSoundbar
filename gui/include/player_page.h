@@ -2,6 +2,7 @@
 #define PLAYER_PAGE_H
 
 #include "interface_player.h"
+#include "media_file_info.h"
 
 #include <QIcon>
 #include <QLabel>
@@ -15,10 +16,8 @@ class PlayerPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit PlayerPage(AudioInterfacePlayer &player, QWidget *parent = nullptr);
+    explicit PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo> &media_files, QWidget *parent = nullptr);
     ~PlayerPage() = default;
-
-    void AddSound(const QString &name);
 
 signals:
     void PlaySoundSignal(const QString &sound_name);
