@@ -23,6 +23,8 @@ public:
 
     std::string GetErrorText() const;
 
+    static double GetDuration(const std::string &file_path);
+
 private:
     int encoding_ = 0;
     mpg123_handle *mpg_handler_ = nullptr;

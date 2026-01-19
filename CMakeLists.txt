@@ -18,7 +18,7 @@ link_directories(${CMAKE_SOURCE_DIR}/lib)
 add_subdirectory(gui)
 
 # Добавление исполняемого файла
-add_executable(MicSoundbar src/main.cpp src/mp3_decoder.cpp src/sound_player.cpp)
+add_executable(MicSoundbar src/main.cpp src/mp3_decoder.cpp src/sound_player.cpp src/media_files.cpp)
 
 # После add_executable
 target_include_directories(MicSoundbar PRIVATE

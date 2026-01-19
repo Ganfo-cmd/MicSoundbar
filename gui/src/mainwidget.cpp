@@ -9,7 +9,7 @@
 
 #include <string>
 
-MainWidget::MainWidget(AudioInterfacePlayer &player, QWidget *parent)
+MainWidget::MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo> vect, QWidget *parent)
     : QWidget(parent)
 {
     resize(1000, 650);
@@ -93,10 +93,9 @@ MainWidget::MainWidget(AudioInterfacePlayer &player, QWidget *parent)
     TextToSpeechPage *text_to_speech_page = new TextToSpeechPage(this);
 
     // Тестирование
-    std::vector<const char *> files_paths = {"C:/file.mp3", "C:/file2.mp3", "C:/file3.mp3", "C:/file4.mp3", "C:/file5.mp3"};
-    for (const auto &file : files_paths)
+    for (const auto &file : vect)
     {
-        player_page->AddSound(QString(file));
+        player_page->AddSound(QString(file.path.c_str()));
     }
 
     stack_widget_->addWidget(player_page);

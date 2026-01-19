@@ -7,7 +7,7 @@ using namespace std::string_literals;
 MP3Decoder::MP3Decoder()
 {
     int err = MPG123_OK;
-    mpg_handler_ = mpg123_new(NULL, &err);
+    mpg_handler_ = mpg123_new(nullptr, &err);
     if (mpg_handler_ == nullptr)
     {
         throw std::runtime_error("Failed to create mpg123_handle. Error: "s + std::string(mpg123_plain_strerror(err)));
@@ -70,4 +70,46 @@ int MP3Decoder::ReadFile(unsigned char *buffer, size_t buffer_size, size_t &done
 std::string MP3Decoder::GetErrorText() const
 {
     return std::string(mpg123_strerror(mpg_handler_));
+}
+
+double MP3Decoder::GetDuration(const std::string &file_path)
+{
+    mpg123_handle *mh = mpg123_new(nullptr, nullptr);
+    if (mh == nullptr)
+    {
+        return 0.0;
+    }
+
+    if (mpg123_open(mh, file_path.c_str()) != MPG123_OK)
+    {
+        mpg123_delete(mh);
+        return 0.0;
+    }
+
+    long rate = 0;
+    int channels = 0, encoding = 0;
+    if (mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK)
+    {
+        mpg123_close(mh);
+        mpg123_delete(mh);
+    }
+
+    off_t samples = mpg123_length(mh);
+    if (samples == MPG123_ERR)
+    {
+        if (mpg123_scan(mh) == MPG123_OK)
+        {
+            samples = mpg123_length(mh); ///
+        }
+    }
+
+    mpg123_close(mh);
+    mpg123_delete(mh);
+
+    if (rate <= 0 || samples <= 0)
+    {
+        return 0.0;
+    }
+
+    return static_cast<double>(samples) / rate;
 }

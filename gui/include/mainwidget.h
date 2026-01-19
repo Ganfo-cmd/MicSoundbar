@@ -2,6 +2,7 @@
 #define MAINWIDGET_H
 
 #include "interface_player.h"
+#include "media_file_info.h"
 
 #include <QWidget>
 #include <QListWidget>
@@ -12,7 +13,7 @@ class MainWidget : public QWidget
     Q_OBJECT
 
 public:
-    MainWidget(AudioInterfacePlayer &player, QWidget *parent = nullptr);
+    MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo> vect, QWidget *parent = nullptr);
     ~MainWidget() = default;
 
 private:
