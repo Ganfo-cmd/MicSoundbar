@@ -149,6 +149,10 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
 
     QTableView *table_view = new QTableView(this);
     table_view->setModel(table_model);
+    table_view->setShowGrid(false);
+    table_view->setFocusPolicy(Qt::NoFocus);
+    table_view->verticalHeader()->setVisible(false);
+    table_view->setStyleSheet("QHeaderView::section {font-weight: normal;}");
 
     PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
     table_view->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
@@ -157,6 +161,7 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
             [this, table_model](int row)
             {
                 const MediaInfo &info = table_model->GetFileInfo(row);
+                table_model->SetPlayingRow(row);
                 player_.Play(info.path);
             });
 

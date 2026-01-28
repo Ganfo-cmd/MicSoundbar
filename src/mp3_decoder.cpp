@@ -94,14 +94,8 @@ double MP3Decoder::GetDuration(const std::string &file_path)
         mpg123_delete(mh);
     }
 
+    mpg123_scan(mh);
     off_t samples = mpg123_length(mh);
-    if (samples == MPG123_ERR)
-    {
-        if (mpg123_scan(mh) == MPG123_OK)
-        {
-            samples = mpg123_length(mh);
-        }
-    }
 
     mpg123_close(mh);
     mpg123_delete(mh);

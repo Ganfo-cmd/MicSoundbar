@@ -1,6 +1,7 @@
 #include "sound_table_model.h"
 
 #include <QString> //
+#include <QBrush>
 
 SoundTableModel::SoundTableModel(QObject *parent) : QAbstractTableModel(parent)
 {
@@ -8,27 +9,35 @@ SoundTableModel::SoundTableModel(QObject *parent) : QAbstractTableModel(parent)
 
 int SoundTableModel::rowCount(const QModelIndex &parent) const
 {
-    /*if (parent.isValid())
-        return 0;*/
+    if (parent.isValid())
+    {
+        return 0;
+    }
 
     return files_.size();
 }
 
 int SoundTableModel::columnCount(const QModelIndex &parent) const
 {
-    /*if (parent.isValid())
-        return 0;*/
+    if (parent.isValid())
+    {
+        return 0;
+    }
 
     return ColumnCount;
 }
 
 QVariant SoundTableModel::data(const QModelIndex &index, int role) const
 {
-    /*if (!index.isValid())
+    if (!index.isValid())
+    {
         return {};
+    }
 
     if (index.row() < 0 || index.row() >= files_.size())
-        return {};*/
+    {
+        return {};
+    }
 
     const MediaInfo &file = files_[index.row()];
 
@@ -39,7 +48,18 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         case ColumnName:
             return QString::fromStdString(file.name);
         case ColumnDuration:
-            return file.duration;
+            int total_duration = static_cast<int>(file.duration);
+            int minutes = total_duration / 60;
+            int seconds = total_duration % 60;
+            return QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
+        }
+    }
+
+    if (role == Qt::BackgroundRole)
+    {
+        if (index.row() == playing_row_)
+        {
+            return QBrush(QColor(180, 215, 255));
         }
     }
 
@@ -86,4 +106,25 @@ void SoundTableModel::SetFiles(const std::vector<MediaInfo> &files)
 const MediaInfo &SoundTableModel::GetFileInfo(int row) const
 {
     return files_[row];
+}
+
+void SoundTableModel::SetPlayingRow(int row)
+{
+    if (row == playing_row_)
+    {
+        return;
+    }
+
+    int old_row = playing_row_;
+    playing_row_ = row;
+
+    if (old_row >= 0)
+    {
+        emit dataChanged(index(old_row, 0), index(old_row, ColumnCount - 1));
+    }
+
+    if (playing_row_ >= 0)
+    {
+        emit dataChanged(index(playing_row_, 0), index(playing_row_, ColumnCount - 1));
+    }
 }

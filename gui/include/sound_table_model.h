@@ -29,6 +29,9 @@ public:
     void SetFiles(const std::vector<MediaInfo> &files);
     const MediaInfo &GetFileInfo(int row) const;
 
+    void SetPlayingRow(int row);
+
 private:
+    int playing_row_ = -1;
     QVector<MediaInfo> files_;
 };
