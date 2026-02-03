@@ -89,6 +89,89 @@ QVariant SoundTableModel::headerData(int section, Qt::Orientation orientation, i
     return {};
 }
 
+Qt::ItemFlags SoundTableModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags flags = QAbstractTableModel::flags(index);
+    flags |= Qt::ItemIsDropEnabled;
+
+    if (index.isValid())
+    {
+        flags |= Qt::ItemIsDragEnabled;
+    }
+
+    return flags;
+}
+
+QStringList SoundTableModel::mimeTypes() const
+{
+    return {"application/x-sound-row"};
+}
+
+QMimeData *SoundTableModel::mimeData(const QModelIndexList &indexes) const
+{
+    if (indexes.empty())
+    {
+        return nullptr;
+    }
+
+    int row = indexes.first().row();
+
+    QMimeData *mime = new QMimeData;
+    mime->setData("application/x-sound-row",
+                  QByteArray::number(row));
+    return mime;
+}
+
+bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
+                                   int row, int column, const QModelIndex &parent)
+{
+    
+    if (action != Qt::MoveAction || !data->hasFormat("application/x-sound-row"))
+    {
+        return false;
+    }
+
+    int source_row = data->data("application/x-sound-row").toInt();
+    int destination_row = row;
+    if (destination_row == -1 && parent.isValid())
+    {
+        destination_row = parent.row();
+    }
+
+    bool invalid_row = destination_row < 0 || destination_row > rowCount();
+    if (destination_row == source_row || invalid_row)
+    {
+        return false;
+    }
+
+    beginMoveRows(QModelIndex(), source_row, source_row,
+                  QModelIndex(), destination_row > source_row ? destination_row + 1 : destination_row);
+
+    files_.move(source_row, destination_row);
+
+    if (playing_row_ == source_row)
+    {
+        playing_row_ = destination_row;
+    }
+    else if (source_row < playing_row_ && destination_row >= playing_row_)
+    {
+        --playing_row_;
+    }
+    else if (source_row > playing_row_ && destination_row <= playing_row_)
+    {
+        ++playing_row_;
+    }
+
+    endMoveRows();
+
+    return true;
+}
+
+Qt::DropActions SoundTableModel::supportedDropActions() const
+{
+    return Qt::MoveAction;
+}
+
 void SoundTableModel::SetFiles(const std::vector<MediaInfo> &files)
 {
     beginResetModel();

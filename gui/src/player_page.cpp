@@ -154,6 +154,11 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
     table_view->verticalHeader()->setVisible(false);
     table_view->setStyleSheet("QHeaderView::section {font-weight: normal;}");
 
+    table_view->setDragEnabled(true);
+    table_view->setAcceptDrops(true);
+    table_view->setDropIndicatorShown(true);
+    table_view->setDragDropMode(QAbstractItemView::InternalMove);
+
     PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
     table_view->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
 
