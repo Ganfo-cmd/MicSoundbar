@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 
     SoundPlayer audio_player;
     MediaFileHandler handler;
-    MainWidget w(audio_player, handler.GetMediaFilesInfo());
+    MainWidget w(audio_player, handler);
 
     w.show();
 

@@ -9,18 +9,16 @@
 
 #include <string>
 
-MainWidget::MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo> &media_files, QWidget *parent)
+MainWidget::MainWidget(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
     : QWidget(parent)
 {
     resize(1000, 650);
     setMinimumSize(800, 630);
 
-    // Создание основного компоновщика
     QHBoxLayout *layout = new QHBoxLayout(this);
     layout->setSpacing(0);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Добавление списка вкладок
     list_widget_ = new QListWidget(this);
     list_widget_->setFixedWidth(150);
 
@@ -66,7 +64,6 @@ MainWidget::MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo
 
     list_widget_->setStyleSheet(list_widget_style);
 
-    // выделение текста элементов QListWidget жирным при их выборе
     connect(list_widget_, &QListWidget::currentItemChanged, this,
             [](QListWidgetItem *current, QListWidgetItem *previous)
             {
@@ -87,16 +84,9 @@ MainWidget::MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo
 
     list_widget_->setCurrentRow(0);
 
-    // Добавление содержимого вкладок
     stack_widget_ = new QStackedWidget(this);
-    PlayerPage *player_page = new PlayerPage(player, media_files, this);
+    PlayerPage *player_page = new PlayerPage(player, media_handler, this);
     TextToSpeechPage *text_to_speech_page = new TextToSpeechPage(this);
-
-    // Тестирование
-    /*for (const auto &file : vect)
-    {
-        player_page->AddSound(QString(file.path.c_str()));
-    }*/
 
     stack_widget_->addWidget(player_page);
     stack_widget_->addWidget(text_to_speech_page);
@@ -104,7 +94,6 @@ MainWidget::MainWidget(AudioInterfacePlayer &player, const std::vector<MediaInfo
     layout->addWidget(list_widget_, 1);
     layout->addWidget(stack_widget_);
 
-    // Подключение выбора элемента в списке к страницам StackedWidget
     connect(list_widget_, &QListWidget::currentRowChanged,
             stack_widget_, &QStackedWidget::setCurrentIndex);
 }

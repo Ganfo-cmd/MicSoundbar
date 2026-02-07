@@ -41,6 +41,7 @@ public:
     const MediaInfo &GetFileInfo(int row) const;
 
     void SetPlayingRow(int row);
+    void SetAvailableRow(int row, bool available);
 
 private:
     int playing_row_ = -1;

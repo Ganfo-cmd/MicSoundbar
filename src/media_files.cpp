@@ -24,6 +24,11 @@ std::vector<MediaInfo> MediaFileHandler::GetMediaFilesInfo() const
     return media_files_;
 }
 
+bool MediaFileHandler::IsAvailableFile(const std::string &file_path) const
+{
+    return std::filesystem::exists(file_path);
+}
+
 double MediaFileHandler::GetMediaFileDuration(const std::string &file_path) const
 {
     return MP3Decoder::GetDuration(file_path);

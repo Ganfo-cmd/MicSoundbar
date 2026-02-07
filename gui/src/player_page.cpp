@@ -1,15 +1,14 @@
 #include "player_page.h"
-#include "sound_table_model.h"
 #include "play_button_delegate.h"
 
 #include <QVBoxLayout>
 #include <QTableView>
 #include <QHeaderView>
 
-PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo> &media_files, QWidget *parent) : QWidget(parent), /*sounds_list_(new QListWidget(this)),*/ player_(player)
+PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
+    : QWidget(parent), player_(player), media_handler_(media_handler)
 {
     Q_INIT_RESOURCE(icons);
-    // Создание основного компоновщика
     QVBoxLayout *main_layout = new QVBoxLayout(this);
     main_layout->setSpacing(0);
     main_layout->setContentsMargins(0, 0, 0, 0);
@@ -144,11 +143,11 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
     layout->setSpacing(0);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    SoundTableModel *table_model = new SoundTableModel(this);
-    table_model->SetFiles(media_files);
+    SoundTableModel *table_model_ = new SoundTableModel(this);
+    table_model_->SetFiles(media_handler_.GetMediaFilesInfo());
 
     QTableView *table_view = new QTableView(this);
-    table_view->setModel(table_model);
+    table_view->setModel(table_model_);
     table_view->setShowGrid(false);
     table_view->setFocusPolicy(Qt::NoFocus);
     table_view->verticalHeader()->setVisible(false);
@@ -165,10 +164,20 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
     table_view->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
 
     connect(play_button_delegate, &PlayButtonDelegate::PlaySound, this,
-            [this, table_model](int row)
+            [this, table_model_](int row)
             {
-                const MediaInfo &info = table_model->GetFileInfo(row);
-                table_model->SetPlayingRow(row);
+                const MediaInfo &info = table_model_->GetFileInfo(row);
+                bool available = media_handler_.IsAvailableFile(info.path);
+
+                table_model_->SetPlayingRow(row);
+                table_model_->SetAvailableRow(row, available);
+
+                if (!available)
+                {
+                    player_.Stop();
+                    return;
+                }
+
                 player_.Play(info.path);
             });
 
@@ -183,13 +192,6 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
 
     layout->addWidget(table_view);
     main_layout->addLayout(layout);
-
-    connect(this, &PlayerPage::PlaySoundSignal, this, &PlayerPage::PlaySound);
-}
-
-void PlayerPage::PlaySound(const QString &sound_name)
-{
-    player_.Play(sound_name.toStdString());
 }
 
 void PlayerPage::ChangeMicVolume(int volume)

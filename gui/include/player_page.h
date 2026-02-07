@@ -2,6 +2,8 @@
 #define PLAYER_PAGE_H
 
 #include "interface_player.h"
+#include "interface_media_handler.h"
+#include "sound_table_model.h"
 #include "media_file_info.h"
 
 #include <QIcon>
@@ -16,14 +18,13 @@ class PlayerPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo> &media_files, QWidget *parent = nullptr);
+    explicit PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent = nullptr);
     ~PlayerPage() = default;
 
 signals:
-    void PlaySoundSignal(const QString &sound_name);
+    void PlaySoundSignal(const QString &sound_path);
 
 private slots:
-    void PlaySound(const QString &sound_name);
     void ChangeMicVolume(int volume);
     void ChangeHeadphoneVolume(int volume);
 
@@ -35,7 +36,9 @@ private slots:
 private:
     QListWidget *sounds_list_ = nullptr;
     AudioInterfacePlayer &player_;
+    InterfaceMediaFileHandler &media_handler_;
     QWidget *toolbar_widget_ = nullptr;
+    SoundTableModel *table_model_ = nullptr;
 
     bool sync_enable_ = false;
     QCheckBox *sync_volume_checkbox_ = nullptr;

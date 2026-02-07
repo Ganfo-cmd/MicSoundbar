@@ -1,19 +1,18 @@
 #pragma once
-#include "media_file_info.h"
+#include "interface_media_handler.h"
 
 #include <filesystem>
-#include <vector>
-#include <string>
 
 const std::filesystem::path audio_folder_const = "D:\\audio"; /*заглушка*/
 
-class MediaFileHandler
+class MediaFileHandler : public InterfaceMediaFileHandler
 {
 public:
     MediaFileHandler();
     ~MediaFileHandler() = default;
 
-    std::vector<MediaInfo> GetMediaFilesInfo() const;
+    std::vector<MediaInfo> GetMediaFilesInfo() const override;
+    bool IsAvailableFile(const std::string &file_path) const override;
 
 private:
     std::filesystem::path audio_folder_ = audio_folder_const;

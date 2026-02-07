@@ -2,6 +2,7 @@
 
 #include <QString> //
 #include <QBrush>
+#include <QFont>
 
 SoundTableModel::SoundTableModel(QObject *parent) : QAbstractTableModel(parent)
 {
@@ -60,6 +61,21 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         if (index.row() == playing_row_)
         {
             return QBrush(QColor(180, 215, 255));
+        }
+    }
+
+    if (!file.available)
+    {
+        if (role == Qt::ForegroundRole)
+        {
+            return QBrush(Qt::gray);
+        }
+
+        if (role == Qt::FontRole)
+        {
+            QFont font;
+            font.setStrikeOut(true);
+            return font;
         }
     }
 
@@ -240,4 +256,10 @@ void SoundTableModel::SetPlayingRow(int row)
     {
         emit dataChanged(index(playing_row_, 0), index(playing_row_, ColumnCount - 1));
     }
+}
+
+void SoundTableModel::SetAvailableRow(int row, bool available)
+{
+    files_[row].available = available;
+    emit dataChanged(index(row, 0), index(row, ColumnCount - 1));
 }
