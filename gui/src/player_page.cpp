@@ -159,6 +159,8 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, const std::vector<MediaInfo
     table_view->setDropIndicatorShown(true);
     table_view->setDragDropMode(QAbstractItemView::InternalMove);
 
+    table_view->setSortingEnabled(true);
+
     PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
     table_view->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
 

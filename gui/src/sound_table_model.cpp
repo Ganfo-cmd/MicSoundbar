@@ -125,7 +125,7 @@ QMimeData *SoundTableModel::mimeData(const QModelIndexList &indexes) const
 bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
                                    int row, int column, const QModelIndex &parent)
 {
-    
+
     if (action != Qt::MoveAction || !data->hasFormat("application/x-sound-row"))
     {
         return false;
@@ -170,6 +170,36 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
 Qt::DropActions SoundTableModel::supportedDropActions() const
 {
     return Qt::MoveAction;
+}
+
+void SoundTableModel::sort(int column, Qt::SortOrder order)
+{
+    if (column == ColumnPlayButton || column == ColumnHotKey)
+    {
+        return;
+    }
+
+    beginResetModel();
+
+    std::sort(files_.begin(), files_.end(),
+              [column, order](const MediaInfo &left, const MediaInfo &right)
+              {
+                bool less = false;
+                switch (column)
+                {
+                case ColumnName:
+                    less = left.name < right.name;
+                    break;
+                case ColumnDuration:
+                    less = left.duration < right.duration;
+                    break;
+                default:
+                    return false;
+                }
+
+                return order == Qt::AscendingOrder ? less : !less; });
+
+    endResetModel();
 }
 
 void SoundTableModel::SetFiles(const std::vector<MediaInfo> &files)

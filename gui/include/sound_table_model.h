@@ -35,6 +35,8 @@ public:
                       int row, int column, const QModelIndex &parent) override;
     Qt::DropActions supportedDropActions() const override;
 
+    void sort(int column, Qt::SortOrder order) override;
+
     void SetFiles(const std::vector<MediaInfo> &files);
     const MediaInfo &GetFileInfo(int row) const;
 
@@ -42,5 +44,6 @@ public:
 
 private:
     int playing_row_ = -1;
+    bool sorting_enabled_ = true; /*не используется, для будущего отключения сортировки*/
     QVector<MediaInfo> files_;
 };
