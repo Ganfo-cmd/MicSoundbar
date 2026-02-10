@@ -3,6 +3,7 @@
 
 MediaFileHandler::MediaFileHandler()
 {
+    uint64_t id = 1; /*заглушка*/
     for (const auto &file : std::filesystem::directory_iterator(audio_folder_))
     {
         const auto file_path = file.path();
@@ -11,10 +12,13 @@ MediaFileHandler::MediaFileHandler()
             const std::string file_path_str = file_path.string();
 
             MediaInfo media_info;
+            media_info.id = id;
             media_info.path = file_path_str;
             media_info.name = file_path.filename().string();
             media_info.duration = GetMediaFileDuration(file_path_str);
             media_files_.push_back(media_info);
+
+            ++id;
         }
     }
 }

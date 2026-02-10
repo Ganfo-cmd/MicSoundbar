@@ -58,7 +58,7 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::BackgroundRole)
     {
-        if (index.row() == playing_row_)
+        if (file.id == playing_file_id_)
         {
             return QBrush(QColor(180, 215, 255));
         }
@@ -131,6 +131,10 @@ QMimeData *SoundTableModel::mimeData(const QModelIndexList &indexes) const
     }
 
     int row = indexes.first().row();
+    if (row < 0 || row > files_.size())
+    {
+        return nullptr;
+    }
 
     QMimeData *mime = new QMimeData;
     mime->setData("application/x-sound-row",
@@ -164,19 +168,6 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
                   QModelIndex(), destination_row > source_row ? destination_row + 1 : destination_row);
 
     files_.move(source_row, destination_row);
-
-    if (playing_row_ == source_row)
-    {
-        playing_row_ = destination_row;
-    }
-    else if (source_row < playing_row_ && destination_row >= playing_row_)
-    {
-        --playing_row_;
-    }
-    else if (source_row > playing_row_ && destination_row <= playing_row_)
-    {
-        ++playing_row_;
-    }
 
     endMoveRows();
 
@@ -239,27 +230,46 @@ const MediaInfo &SoundTableModel::GetFileInfo(int row) const
 
 void SoundTableModel::SetPlayingRow(int row)
 {
-    if (row == playing_row_)
+    if (row < 0 || row > files_.size())
     {
         return;
     }
 
-    int old_row = playing_row_;
-    playing_row_ = row;
-
-    if (old_row >= 0)
+    uint64_t new_playing_file_id = files_[row].id;
+    if (new_playing_file_id == playing_file_id_)
     {
-        emit dataChanged(index(old_row, 0), index(old_row, ColumnCount - 1));
+        return;
     }
 
-    if (playing_row_ >= 0)
+    int old_row = -1;
+    if (playing_file_id_ != INVALID_ID)
     {
-        emit dataChanged(index(playing_row_, 0), index(playing_row_, ColumnCount - 1));
+        for (int i = 0; i < files_.size(); ++i)
+        {
+            if (playing_file_id_ == files_[i].id)
+            {
+                old_row = i;
+                break;
+            }
+        }
+    }
+
+    playing_file_id_ = new_playing_file_id;
+    emit dataChanged(index(row, 0), index(row, ColumnCount - 1), {Qt::BackgroundRole});
+
+    if (old_row != -1)
+    {
+        emit dataChanged(index(old_row, 0), index(old_row, ColumnCount - 1), {Qt::BackgroundRole});
     }
 }
 
 void SoundTableModel::SetAvailableRow(int row, bool available)
 {
+    if (row < 0 || row > files_.size())
+    {
+        return;
+    }
+
     files_[row].available = available;
-    emit dataChanged(index(row, 0), index(row, ColumnCount - 1));
+    emit dataChanged(index(row, 0), index(row, ColumnCount - 1), {Qt::ForegroundRole, Qt::FontRole});
 }

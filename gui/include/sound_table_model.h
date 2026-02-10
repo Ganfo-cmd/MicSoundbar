@@ -5,6 +5,8 @@
 #include <QVector>
 #include <QMimeData>
 
+static constexpr uint64_t INVALID_ID = 0;
+
 enum Columns
 {
     ColumnPlayButton,
@@ -44,7 +46,7 @@ public:
     void SetAvailableRow(int row, bool available);
 
 private:
-    int playing_row_ = -1;
+    uint64_t playing_file_id_ = INVALID_ID;
     bool sorting_enabled_ = true; /*не используется, для будущего отключения сортировки*/
     QVector<MediaInfo> files_;
 };
