@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QWidget>
 #include <QSlider>
+#include <QLineEdit>
 #include <QCheckBox>
 #include <QPushButton>
 
@@ -18,7 +19,11 @@ signals:
     void MicVolumeChanged(int volume);
     void HeadphoneVolumeChanged(int volume);
 
+    void SearchTextChanged(const QString& text);
+
 private:
+    QLineEdit *search_line_edit_ = nullptr;
+
     bool sync_enable_ = false;
     QCheckBox *sync_volume_checkbox_ = nullptr;
 

@@ -70,6 +70,8 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     table_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     main_layout->addWidget(table_view);
+
+    connect(toolbar_widget_, &ToolBar::SearchTextChanged, table_model_, &SoundTableModel::SetSearchText);
 }
 
 void PlayerPage::ChangeMicVolume(int volume)

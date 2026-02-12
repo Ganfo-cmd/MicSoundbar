@@ -62,6 +62,15 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         {
             return QBrush(QColor(180, 215, 255));
         }
+
+        if (!search_text_.isEmpty())
+        {
+            QString name = QString::fromUtf8(file.name.c_str());
+            if (name.contains(search_text_, Qt::CaseInsensitive))
+            {
+                return QBrush(QColor(182, 240, 198));
+            }
+        }
     }
 
     if (!file.available)
@@ -272,4 +281,13 @@ void SoundTableModel::SetAvailableRow(int row, bool available)
 
     files_[row].available = available;
     emit dataChanged(index(row, 0), index(row, ColumnCount - 1), {Qt::ForegroundRole, Qt::FontRole});
+}
+
+void SoundTableModel::SetSearchText(const QString &text)
+{
+    search_text_ = text;
+    if (!files_.empty())
+    {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1), {Qt::BackgroundRole});
+    }
 }

@@ -45,8 +45,12 @@ public:
     void SetPlayingRow(int row);
     void SetAvailableRow(int row, bool available);
 
+public slots:
+    void SetSearchText(const QString &text);
+
 private:
     uint64_t playing_file_id_ = INVALID_ID;
     bool sorting_enabled_ = true; /*не используется, для будущего отключения сортировки*/
     QVector<MediaInfo> files_;
+    QString search_text_;
 };

@@ -17,6 +17,11 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
     QLabel *leftpath = new QLabel("Left path", this);
     toolbar_layout->addWidget(leftpath);
 
+    search_line_edit_ = new QLineEdit(this);
+    toolbar_layout->addWidget(search_line_edit_);
+
+    connect(search_line_edit_, &QLineEdit::textChanged, this, &ToolBar::SearchTextChanged);
+
     sync_volume_checkbox_ = new QCheckBox("Синхронизация звука", this);
     sync_volume_checkbox_->setChecked(false);
     toolbar_layout->addWidget(sync_volume_checkbox_);
