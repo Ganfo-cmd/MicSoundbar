@@ -12,6 +12,7 @@ set(GUI_Headers
     include/text_to_speech_page.h
     include/sound_table_model.h
     include/play_button_delegate.h
+    include/player_page_toolbar.h
 )
 
 set(GUI_Sources
@@ -20,6 +21,7 @@ set(GUI_Sources
     src/text_to_speech_page.cpp
     src/sound_table_model.cpp
     src/play_button_delegate.cpp
+    src/player_page_toolbar.cpp
 )
 
 # Создаем GUI библиотеку
