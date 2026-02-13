@@ -22,12 +22,22 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
 
     connect(search_line_edit_, &QLineEdit::textChanged, this, &ToolBar::SearchTextChanged);
 
+    QVBoxLayout *sync_and_sort_checkbox = new QVBoxLayout;
+
     sync_volume_checkbox_ = new QCheckBox("Синхронизация звука", this);
     sync_volume_checkbox_->setChecked(false);
-    toolbar_layout->addWidget(sync_volume_checkbox_);
+    sync_and_sort_checkbox->addWidget(sync_volume_checkbox_);
 
     connect(sync_volume_checkbox_, &QCheckBox::toggled, this, [this](bool enable)
             { sync_enable_ = enable; });
+
+    sort_disable_checkbox_ = new QCheckBox("Отключить сортировку", this);
+    sort_disable_checkbox_->setChecked(false);
+    sync_and_sort_checkbox->addWidget(sort_disable_checkbox_);
+
+    connect(sort_disable_checkbox_, &QCheckBox::toggled, this, &ToolBar::SortDisable);
+
+    toolbar_layout->addLayout(sync_and_sort_checkbox);
 
     QVBoxLayout *volume_control_layout = new QVBoxLayout;
     QHBoxLayout *mic_volume_control_layout = new QHBoxLayout;

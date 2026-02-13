@@ -39,6 +39,9 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
 
     table_view->setSortingEnabled(true);
 
+    connect(toolbar_widget_, &ToolBar::SortDisable, table_view, [table_view](bool sort_disable)
+            { table_view->horizontalHeader()->setSectionsClickable(!sort_disable); });
+
     PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
     table_view->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
 

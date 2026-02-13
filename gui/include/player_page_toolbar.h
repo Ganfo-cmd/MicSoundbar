@@ -19,10 +19,13 @@ signals:
     void MicVolumeChanged(int volume);
     void HeadphoneVolumeChanged(int volume);
 
-    void SearchTextChanged(const QString& text);
+    void SearchTextChanged(const QString &text);
+    void SortDisable(bool disable);
 
 private:
     QLineEdit *search_line_edit_ = nullptr;
+
+    QCheckBox *sort_disable_checkbox_ = nullptr;
 
     bool sync_enable_ = false;
     QCheckBox *sync_volume_checkbox_ = nullptr;
