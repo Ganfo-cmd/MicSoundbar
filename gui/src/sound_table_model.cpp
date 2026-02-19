@@ -1,10 +1,11 @@
 #include "sound_table_model.h"
 
-#include <QString> //
+#include <QString>
 #include <QBrush>
 #include <QFont>
 
-SoundTableModel::SoundTableModel(QObject *parent) : QAbstractTableModel(parent)
+SoundTableModel::SoundTableModel(InterfaceMediaFileHandler &media_handler, QObject *parent)
+    : media_handler_(media_handler), QAbstractTableModel(parent)
 {
 }
 
@@ -15,7 +16,7 @@ int SoundTableModel::rowCount(const QModelIndex &parent) const
         return 0;
     }
 
-    return files_.size();
+    return media_handler_.Size();
 }
 
 int SoundTableModel::columnCount(const QModelIndex &parent) const
@@ -30,17 +31,12 @@ int SoundTableModel::columnCount(const QModelIndex &parent) const
 
 QVariant SoundTableModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid())
+    if (!index.isValid() || !IsValidRow(index.row()))
     {
         return {};
     }
 
-    if (index.row() < 0 || index.row() >= files_.size())
-    {
-        return {};
-    }
-
-    const MediaInfo &file = files_[index.row()];
+    const MediaInfo &file = media_handler_.GetMediaFileInfo(index.row());
 
     if (role == Qt::DisplayRole)
     {
@@ -140,7 +136,7 @@ QMimeData *SoundTableModel::mimeData(const QModelIndexList &indexes) const
     }
 
     int row = indexes.first().row();
-    if (row < 0 || row > files_.size())
+    if (!IsValidRow(row))
     {
         return nullptr;
     }
@@ -154,7 +150,6 @@ QMimeData *SoundTableModel::mimeData(const QModelIndexList &indexes) const
 bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
                                    int row, int column, const QModelIndex &parent)
 {
-
     if (action != Qt::MoveAction || !data->hasFormat("application/x-sound-row"))
     {
         return false;
@@ -176,8 +171,7 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     beginMoveRows(QModelIndex(), source_row, source_row,
                   QModelIndex(), destination_row > source_row ? destination_row + 1 : destination_row);
 
-    files_.move(source_row, destination_row);
-
+    media_handler_.MoveFile(source_row, destination_row);
     endMoveRows();
 
     return true;
@@ -190,61 +184,42 @@ Qt::DropActions SoundTableModel::supportedDropActions() const
 
 void SoundTableModel::sort(int column, Qt::SortOrder order)
 {
-    if (column == ColumnPlayButton || column == ColumnHotKey)
+    SortField field;
+    switch (column)
     {
+    case ColumnName:
+        field = SortField::Name;
+        break;
+    case ColumnDuration:
+        field = SortField::Duration;
+        break;
+    default:
         return;
     }
 
+    SortOrder sort_order =
+        (order == Qt::AscendingOrder)
+            ? SortOrder::Ascending
+            : SortOrder::Descending;
+
     beginResetModel();
-
-    std::sort(files_.begin(), files_.end(),
-              [column, order](const MediaInfo &left, const MediaInfo &right)
-              {
-                bool less = false;
-                switch (column)
-                {
-                case ColumnName:
-                    less = left.name < right.name;
-                    break;
-                case ColumnDuration:
-                    less = left.duration < right.duration;
-                    break;
-                default:
-                    return false;
-                }
-
-                return order == Qt::AscendingOrder ? less : !less; });
-
-    endResetModel();
-}
-
-void SoundTableModel::SetFiles(const std::vector<MediaInfo> &files)
-{
-    beginResetModel();
-
-    files_.clear();
-    files_.reserve(files.size());
-    for (const auto &f : files)
-    {
-        files_.push_back(f);
-    }
-
+    media_handler_.Sort(field, sort_order);
     endResetModel();
 }
 
 const MediaInfo &SoundTableModel::GetFileInfo(int row) const
 {
-    return files_[row];
+    return media_handler_.GetMediaFileInfo(row);
 }
 
 void SoundTableModel::SetPlayingRow(int row)
 {
-    if (row < 0 || row > files_.size())
+    if (!IsValidRow(row))
     {
         return;
     }
 
-    uint64_t new_playing_file_id = files_[row].id;
+    uint64_t new_playing_file_id = media_handler_.GetMediaFileInfo(row).id;
     if (new_playing_file_id == playing_file_id_)
     {
         return;
@@ -253,9 +228,9 @@ void SoundTableModel::SetPlayingRow(int row)
     int old_row = -1;
     if (playing_file_id_ != INVALID_ID)
     {
-        for (int i = 0; i < files_.size(); ++i)
+        for (int i = 0; i < media_handler_.Size(); ++i)
         {
-            if (playing_file_id_ == files_[i].id)
+            if (playing_file_id_ == media_handler_.GetMediaFileInfo(i).id)
             {
                 old_row = i;
                 break;
@@ -272,22 +247,34 @@ void SoundTableModel::SetPlayingRow(int row)
     }
 }
 
-void SoundTableModel::SetAvailableRow(int row, bool available)
+bool SoundTableModel::UpdateAvailability(int row)
 {
-    if (row < 0 || row > files_.size())
+    if (!IsValidRow(row))
     {
-        return;
+        return false;
     }
 
-    files_[row].available = available;
     emit dataChanged(index(row, 0), index(row, ColumnCount - 1), {Qt::ForegroundRole, Qt::FontRole});
+    return media_handler_.UpdateAvailability(row);
 }
 
 void SoundTableModel::SetSearchText(const QString &text)
 {
     search_text_ = text;
-    if (!files_.empty())
+    if (media_handler_.Size() == 0)
     {
-        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1), {Qt::BackgroundRole});
+        return;
     }
+
+    emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1), {Qt::BackgroundRole});
+}
+
+bool SoundTableModel::IsValidRow(int row) const
+{
+    if (row >= 0 || row < media_handler_.Size())
+    {
+        return true;
+    }
+
+    return false;
 }

@@ -1,8 +1,8 @@
 #pragma once
 #include "media_file_info.h"
+#include "interface_media_handler.h"
 
 #include <QAbstractTableModel>
-#include <QVector>
 #include <QMimeData>
 
 static constexpr uint64_t INVALID_ID = 0;
@@ -20,7 +20,7 @@ class SoundTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    SoundTableModel(QObject *parent = nullptr);
+    SoundTableModel(InterfaceMediaFileHandler &media_handler, QObject *parent = nullptr);
     ~SoundTableModel() = default;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -39,18 +39,18 @@ public:
 
     void sort(int column, Qt::SortOrder order) override;
 
-    void SetFiles(const std::vector<MediaInfo> &files);
     const MediaInfo &GetFileInfo(int row) const;
 
     void SetPlayingRow(int row);
-    void SetAvailableRow(int row, bool available);
+    bool UpdateAvailability(int row);
 
 public slots:
     void SetSearchText(const QString &text);
 
 private:
-    uint64_t playing_file_id_ = INVALID_ID;
-    bool sorting_enabled_ = true; /*не используется, для будущего отключения сортировки*/
-    QVector<MediaInfo> files_;
     QString search_text_;
+    uint64_t playing_file_id_ = INVALID_ID;
+    InterfaceMediaFileHandler &media_handler_;
+
+    bool IsValidRow(int row) const;
 };

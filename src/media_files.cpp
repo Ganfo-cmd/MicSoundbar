@@ -3,7 +3,6 @@
 
 MediaFileHandler::MediaFileHandler()
 {
-    uint64_t id = 1; /*заглушка*/
     for (const auto &file : std::filesystem::directory_iterator(audio_folder_))
     {
         const auto file_path = file.path();
@@ -12,25 +11,46 @@ MediaFileHandler::MediaFileHandler()
             const std::string file_path_str = file_path.string();
 
             MediaInfo media_info;
-            media_info.id = id;
+            media_info.id = next_id_++;
             media_info.path = file_path_str;
             media_info.name = file_path.filename().string();
             media_info.duration = GetMediaFileDuration(file_path_str);
-            media_files_.push_back(media_info);
-
-            ++id;
+            media_library_.AddFile(media_info);
         }
     }
 }
 
-std::vector<MediaInfo> MediaFileHandler::GetMediaFilesInfo() const
+void MediaFileHandler::MoveFile(size_t from, size_t to)
 {
-    return media_files_;
+    media_library_.MoveFile(from, to);
 }
 
-bool MediaFileHandler::IsAvailableFile(const std::string &file_path) const
+void MediaFileHandler::Sort(SortField field, SortOrder order)
 {
-    return std::filesystem::exists(file_path);
+    media_library_.Sort(field, order);
+}
+
+size_t MediaFileHandler::Size() const
+{
+    return media_library_.Size();
+}
+
+const MediaInfo &MediaFileHandler::GetMediaFileInfo(size_t index) const
+{
+    return media_library_.GetMediaFileInfo(index);
+}
+
+const std::vector<MediaInfo> &MediaFileHandler::GetAllMediaInfo() const
+{
+    return media_library_.GetAllMediaInfo();
+}
+
+bool MediaFileHandler::UpdateAvailability(size_t row)
+{
+    const MediaInfo &file = media_library_.GetMediaFileInfo(row);
+    bool exists = std::filesystem::exists(file.path);
+    media_library_.UpdateAvailability(exists, row);
+    return exists;
 }
 
 double MediaFileHandler::GetMediaFileDuration(const std::string &file_path) const

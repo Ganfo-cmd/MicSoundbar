@@ -6,7 +6,7 @@
 #include <QHeaderView>
 
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
-    : QWidget(parent), player_(player), media_handler_(media_handler)
+    : QWidget(parent), player_(player)
 {
     QVBoxLayout *main_layout = new QVBoxLayout(this);
     main_layout->setSpacing(0);
@@ -22,8 +22,7 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
 
     main_layout->addWidget(toolbar_widget_);
 
-    table_model_ = new SoundTableModel(this);
-    table_model_->SetFiles(media_handler_.GetMediaFilesInfo());
+    table_model_ = new SoundTableModel(media_handler, this);
 
     QTableView *table_view = new QTableView(this);
     table_view->setModel(table_model_);
@@ -48,18 +47,14 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     connect(play_button_delegate, &PlayButtonDelegate::PlaySound, this,
             [this](int row)
             {
-                const MediaInfo &info = table_model_->GetFileInfo(row);
-                bool available = media_handler_.IsAvailableFile(info.path);
-
-                table_model_->SetPlayingRow(row);
-                table_model_->SetAvailableRow(row, available);
-
-                if (!available)
+                if (!table_model_->UpdateAvailability(row))
                 {
                     player_.Stop();
                     return;
                 }
 
+                const MediaInfo &info = table_model_->GetFileInfo(row);
+                table_model_->SetPlayingRow(row);
                 player_.Play(info.path);
             });
 

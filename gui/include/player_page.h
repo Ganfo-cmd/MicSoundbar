@@ -24,7 +24,6 @@ private:
     SoundTableModel *table_model_ = nullptr;
 
     AudioInterfacePlayer &player_;
-    InterfaceMediaFileHandler &media_handler_;
 };
 
 #endif // PLAYER_PAGE_H

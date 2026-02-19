@@ -10,3 +10,15 @@ struct MediaInfo
     double duration;
     bool available = true;
 };
+
+enum class SortField
+{
+    Name,
+    Duration
+};
+
+enum class SortOrder
+{
+    Ascending,
+    Descending
+};
