@@ -45,9 +45,8 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         case ColumnName:
             return QString::fromStdString(file.name);
         case ColumnDuration:
-            int total_duration = static_cast<int>(file.duration);
-            int minutes = total_duration / 60;
-            int seconds = total_duration % 60;
+            int minutes = file.duration / 60;
+            int seconds = file.duration % 60;
             return QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
         }
     }

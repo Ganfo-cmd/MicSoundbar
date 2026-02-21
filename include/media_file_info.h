@@ -7,7 +7,7 @@ struct MediaInfo
     uint64_t id;
     std::string name;
     std::string path;
-    double duration;
+    uint32_t duration;
     bool available = true;
 };
 

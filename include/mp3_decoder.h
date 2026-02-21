@@ -23,7 +23,7 @@ public:
 
     std::string GetErrorText() const;
 
-    static double GetDuration(const std::string &file_path);
+    static uint32_t GetDuration(const std::string &file_path);
 
 private:
     int encoding_ = 0;

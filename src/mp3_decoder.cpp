@@ -72,7 +72,7 @@ std::string MP3Decoder::GetErrorText() const
     return std::string(mpg123_strerror(mpg_handler_));
 }
 
-double MP3Decoder::GetDuration(const std::string &file_path)
+uint32_t MP3Decoder::GetDuration(const std::string &file_path)
 {
     mpg123_handle *mh = mpg123_new(nullptr, nullptr);
     if (mh == nullptr)
@@ -105,5 +105,5 @@ double MP3Decoder::GetDuration(const std::string &file_path)
         return 0.0;
     }
 
-    return static_cast<double>(samples) / rate;
+    return samples / rate;
 }

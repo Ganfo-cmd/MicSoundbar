@@ -1,6 +1,7 @@
 #pragma once
 #include "interface_media_handler.h"
 #include "media_library.h"
+#include "media_json.h"
 
 #include <filesystem>
 
@@ -21,9 +22,10 @@ public:
     const std::vector<MediaInfo> &GetAllMediaInfo() const override;
 
 private:
-    uint64_t next_id_ = 1; /*заглушка*/
+    uint64_t next_id_ = 1;
     std::filesystem::path audio_folder_ = audio_folder_const;
     MediaLibrary media_library_;
+    MediaJSON media_json_;
 
-    double GetMediaFileDuration(const std::string &file_path) const;
+    uint32_t GetMediaFileDuration(const std::string &file_path) const;
 };

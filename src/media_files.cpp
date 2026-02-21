@@ -1,21 +1,35 @@
 #include "media_files.h"
 #include "mp3_decoder.h"
 
-MediaFileHandler::MediaFileHandler()
+MediaFileHandler::MediaFileHandler() : media_json_("D:\\audio\\library.json")
 {
-    for (const auto &file : std::filesystem::directory_iterator(audio_folder_))
-    {
-        const auto file_path = file.path();
-        if (file_path.extension() == ".mp3")
-        {
-            const std::string file_path_str = file_path.string();
+    bool success;
+    const auto list = media_json_.Load(next_id_, success);
 
-            MediaInfo media_info;
-            media_info.id = next_id_++;
-            media_info.path = file_path_str;
-            media_info.name = file_path.filename().string();
-            media_info.duration = GetMediaFileDuration(file_path_str);
-            media_library_.AddFile(media_info);
+    if (!success)
+    {
+        for (const auto &file : std::filesystem::directory_iterator(audio_folder_))
+        {
+            const auto file_path = file.path();
+            if (file_path.extension() == ".mp3")
+            {
+                const std::string file_path_str = file_path.string();
+
+                MediaInfo media_info;
+                media_info.id = next_id_++;
+                media_info.path = file_path_str;
+                media_info.name = file_path.filename().string();
+                media_info.duration = GetMediaFileDuration(file_path_str);
+                media_library_.AddFile(media_info);
+            }
+        }
+        media_json_.Save(media_library_.GetAllMediaInfo(), next_id_);
+    }
+    else
+    {
+        for (const auto &elem : list)
+        {
+            media_library_.AddFile(elem);
         }
     }
 }
@@ -53,7 +67,7 @@ bool MediaFileHandler::UpdateAvailability(size_t row)
     return exists;
 }
 
-double MediaFileHandler::GetMediaFileDuration(const std::string &file_path) const
+uint32_t MediaFileHandler::GetMediaFileDuration(const std::string &file_path) const
 {
     return MP3Decoder::GetDuration(file_path);
 }
