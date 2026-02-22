@@ -2,6 +2,7 @@
 #include "interface_media_handler.h"
 #include "media_library.h"
 #include "media_json.h"
+#include "media_scanner.h"
 
 #include <filesystem>
 
@@ -12,6 +13,8 @@ class MediaFileHandler : public InterfaceMediaFileHandler
 public:
     MediaFileHandler();
     ~MediaFileHandler() = default;
+
+    void Initialize();
 
     void MoveFile(size_t from, size_t to) override;
     void Sort(SortField field, SortOrder order) override;
@@ -24,8 +27,8 @@ public:
 private:
     uint64_t next_id_ = 1;
     std::filesystem::path audio_folder_ = audio_folder_const;
-    MediaLibrary media_library_;
-    MediaJSON media_json_;
 
-    uint32_t GetMediaFileDuration(const std::string &file_path) const;
+    MediaJSON media_json_;
+    MediaLibrary media_library_;
+    MediaScanner media_scanner_;
 };

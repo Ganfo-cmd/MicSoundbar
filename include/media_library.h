@@ -10,6 +10,7 @@ public:
     ~MediaLibrary() = default;
 
     void AddFile(const MediaInfo &file);
+    void AddFile(MediaInfo &&file);
     void RemoveFile(size_t index);
     void MoveFile(size_t from, size_t to);
     void Sort(SortField field, SortOrder order);
