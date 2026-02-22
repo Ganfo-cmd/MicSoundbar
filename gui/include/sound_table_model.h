@@ -43,6 +43,7 @@ public:
 
     void SetPlayingRow(int row);
     bool UpdateAvailability(int row);
+    void AddFilesInLibrary(const std::vector<std::filesystem::path> &files);
 
 public slots:
     void SetSearchText(const QString &text);

@@ -18,6 +18,7 @@ public:
 private slots:
     void ChangeMicVolume(int volume);
     void ChangeHeadphoneVolume(int volume);
+    void AddFiles();
 
 private:
     ToolBar *toolbar_widget_ = nullptr;

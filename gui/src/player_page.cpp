@@ -1,6 +1,8 @@
 #include "player_page.h"
 #include "play_button_delegate.h"
 
+#include <QDir>
+#include <QFileDialog>
 #include <QVBoxLayout>
 #include <QTableView>
 #include <QHeaderView>
@@ -70,6 +72,7 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     main_layout->addWidget(table_view);
 
     connect(toolbar_widget_, &ToolBar::SearchTextChanged, table_model_, &SoundTableModel::SetSearchText);
+    connect(toolbar_widget_, &ToolBar::AddFileClicked, this, &PlayerPage::AddFiles);
 }
 
 void PlayerPage::ChangeMicVolume(int volume)
@@ -82,4 +85,26 @@ void PlayerPage::ChangeHeadphoneVolume(int volume)
 {
     float float_volume = volume / 100.0f;
     player_.SetOutVolume(float_volume);
+}
+
+void PlayerPage::AddFiles()
+{
+    QStringList files = QFileDialog::getOpenFileNames(
+        this, tr("Выберите аудиофайлы"),
+        QDir::currentPath(),
+        tr("MP3 Files (*.mp3)"));
+
+    if (files.isEmpty())
+    {
+        return;
+    }
+
+    std::vector<std::filesystem::path> paths;
+    paths.reserve(files.size());
+    for (const QString &file : files)
+    {
+        paths.emplace_back(file.toStdString());
+    }
+
+    table_model_->AddFilesInLibrary(paths);
 }

@@ -4,8 +4,6 @@
 #include "media_json.h"
 #include "media_scanner.h"
 
-#include <filesystem>
-
 const std::filesystem::path audio_folder_const = "D:\\audio"; /*заглушка*/
 
 class MediaFileHandler : public InterfaceMediaFileHandler
@@ -19,6 +17,8 @@ public:
     void MoveFile(size_t from, size_t to) override;
     void Sort(SortField field, SortOrder order) override;
     bool UpdateAvailability(size_t row) override;
+
+    void AddFilesInLibrary(const std::vector<std::filesystem::path>& files) override;
 
     size_t Size() const override;
     const MediaInfo &GetMediaFileInfo(size_t index) const override;

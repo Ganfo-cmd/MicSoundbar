@@ -1,5 +1,5 @@
 #include "media_files.h"
-#include <iostream>
+
 MediaFileHandler::MediaFileHandler() : media_json_("D:\\audio\\library.json")
 {
     Initialize();
@@ -30,6 +30,16 @@ void MediaFileHandler::MoveFile(size_t from, size_t to)
 void MediaFileHandler::Sort(SortField field, SortOrder order)
 {
     media_library_.Sort(field, order);
+}
+
+void MediaFileHandler::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
+{
+    auto list = media_scanner_.ScanListFiles(files, next_id_);
+    for (auto &file : list)
+    {
+        media_library_.AddFile(std::move(file));
+    }
+    media_json_.Save(media_library_.GetAllMediaInfo(), next_id_);
 }
 
 size_t MediaFileHandler::Size() const

@@ -22,6 +22,8 @@ signals:
     void SearchTextChanged(const QString &text);
     void SortDisable(bool disable);
 
+    void AddFileClicked();
+
 private:
     QLineEdit *search_line_edit_ = nullptr;
 

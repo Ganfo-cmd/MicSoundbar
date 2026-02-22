@@ -257,6 +257,23 @@ bool SoundTableModel::UpdateAvailability(int row)
     return media_handler_.UpdateAvailability(row);
 }
 
+void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
+{
+    int old_size = rowCount();
+    int files_count = files.size();
+
+    if (files_count == 0)
+    {
+        return;
+    }
+
+    beginInsertRows(QModelIndex(), old_size, old_size + files_count - 1);
+
+    media_handler_.AddFilesInLibrary(files);
+
+    endInsertRows();
+}
+
 void SoundTableModel::SetSearchText(const QString &text)
 {
     search_text_ = text;

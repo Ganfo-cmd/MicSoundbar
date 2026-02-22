@@ -14,8 +14,11 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
     QHBoxLayout *toolbar_layout = new QHBoxLayout;
     setLayout(toolbar_layout);
 
-    QLabel *leftpath = new QLabel("Left path", this);
-    toolbar_layout->addWidget(leftpath);
+    QPushButton *add_file_button = new QPushButton("Добавить файл", this);
+    toolbar_layout->addWidget(add_file_button);
+
+    connect(add_file_button, &QPushButton::clicked,
+            this, &ToolBar::AddFileClicked);
 
     search_line_edit_ = new QLineEdit(this);
     toolbar_layout->addWidget(search_line_edit_);
