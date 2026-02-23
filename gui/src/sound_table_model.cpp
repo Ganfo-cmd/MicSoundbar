@@ -181,6 +181,50 @@ Qt::DropActions SoundTableModel::supportedDropActions() const
     return Qt::MoveAction;
 }
 
+int SoundTableModel::FindNextMatchRow()
+{
+    if (search_text_.isEmpty())
+    {
+        return -1;
+    }
+
+    const auto &files = media_handler_.GetAllMediaInfo();
+    for (int row = current_search_row_ + 1; row < media_handler_.Size(); ++row)
+    {
+        const auto &file = files[row];
+        QString name = QString::fromUtf8(file.name.c_str());
+        if (name.contains(search_text_, Qt::CaseInsensitive))
+        {
+            current_search_row_ = row;
+            return row;
+        }
+    }
+
+    return -1;
+}
+
+int SoundTableModel::FindPrevMatchRow()
+{
+    if (search_text_.isEmpty())
+    {
+        return -1;
+    }
+
+    const auto &files = media_handler_.GetAllMediaInfo();
+    for (int row = current_search_row_ - 1; row >= 0; --row)
+    {
+        const auto &file = files[row];
+        QString name = QString::fromUtf8(file.name.c_str());
+        if (name.contains(search_text_, Qt::CaseInsensitive))
+        {
+            current_search_row_ = row;
+            return row;
+        }
+    }
+
+    return -1;
+}
+
 void SoundTableModel::sort(int column, Qt::SortOrder order)
 {
     SortField field;

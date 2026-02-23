@@ -7,6 +7,8 @@
 #include "media_file_info.h"
 #include "player_page_toolbar.h"
 
+#include <QTableView>
+
 class PlayerPage : public QWidget
 {
     Q_OBJECT
@@ -19,9 +21,12 @@ private slots:
     void ChangeMicVolume(int volume);
     void ChangeHeadphoneVolume(int volume);
     void AddFiles();
+    void SearchUp();
+    void SearchDown();
 
 private:
     ToolBar *toolbar_widget_ = nullptr;
+    QTableView *table_view_ = nullptr;
     SoundTableModel *table_model_ = nullptr;
 
     AudioInterfacePlayer &player_;

@@ -25,6 +25,37 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
 
     connect(search_line_edit_, &QLineEdit::textChanged, this, &ToolBar::SearchTextChanged);
 
+    QVBoxLayout *up_and_down_button_layout = new QVBoxLayout;
+    up_button_ = new QPushButton(this);
+    up_button_->setFixedSize(22, 22);
+    up_button_->setIcon(QIcon(":/icons/up_arrow.png"));
+    up_button_->hide();
+
+    connect(up_button_, &QPushButton::clicked,
+            this, &ToolBar::UpArrowClicked);
+
+    down_button_ = new QPushButton(this);
+    down_button_->setFixedSize(22, 22);
+    down_button_->setIcon(QIcon(":/icons/down_arrow.png"));
+    down_button_->hide();
+
+    connect(down_button_, &QPushButton::clicked,
+            this, &ToolBar::DownArrowClicked);
+
+    up_and_down_button_layout->addWidget(down_button_);
+    up_and_down_button_layout->addWidget(up_button_);
+    toolbar_layout->addLayout(up_and_down_button_layout);
+
+    connect(search_line_edit_, &QLineEdit::textChanged, this, [this](const QString &search_text)
+            { if(search_text.isEmpty())
+                {
+                    up_button_->hide();
+                    down_button_->hide();
+                } else{
+                    up_button_->show();
+                    down_button_->show();
+                } });
+
     QVBoxLayout *sync_and_sort_checkbox = new QVBoxLayout;
 
     sync_volume_checkbox_ = new QCheckBox("Синхронизация звука", this);

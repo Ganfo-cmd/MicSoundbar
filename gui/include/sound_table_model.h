@@ -37,6 +37,8 @@ public:
                       int row, int column, const QModelIndex &parent) override;
     Qt::DropActions supportedDropActions() const override;
 
+    int FindNextMatchRow();
+    int FindPrevMatchRow();
     void sort(int column, Qt::SortOrder order) override;
 
     const MediaInfo &GetFileInfo(int row) const;
@@ -50,6 +52,7 @@ public slots:
 
 private:
     QString search_text_;
+    int current_search_row_ = -1;
     uint64_t playing_file_id_ = INVALID_ID;
     InterfaceMediaFileHandler &media_handler_;
 

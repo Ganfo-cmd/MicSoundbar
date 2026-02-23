@@ -23,9 +23,13 @@ signals:
     void SortDisable(bool disable);
 
     void AddFileClicked();
+    void UpArrowClicked();
+    void DownArrowClicked();
 
 private:
     QLineEdit *search_line_edit_ = nullptr;
+    QPushButton *up_button_ = nullptr;
+    QPushButton *down_button_ = nullptr;
 
     QCheckBox *sort_disable_checkbox_ = nullptr;
 
