@@ -11,7 +11,7 @@ public:
 
     void AddFile(const MediaInfo &file);
     void AddFile(MediaInfo &&file);
-    void RemoveFile(size_t index);
+    void DeleteFile(size_t index);
     void MoveFile(size_t from, size_t to);
     void Sort(SortField field, SortOrder order);
     void UpdateAvailability(bool is_available, size_t row);

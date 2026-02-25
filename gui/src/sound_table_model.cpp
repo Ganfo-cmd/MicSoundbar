@@ -301,6 +301,18 @@ bool SoundTableModel::UpdateAvailability(int row)
     return media_handler_.UpdateAvailability(row);
 }
 
+void SoundTableModel::DeleteFile(int row)
+{
+    if (!IsValidRow(row))
+    {
+        return;
+    }
+
+    beginRemoveRows(QModelIndex(), row, row);
+    media_handler_.DeleteFile(row);
+    endRemoveRows();
+}
+
 void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
 {
     int old_size = rowCount();

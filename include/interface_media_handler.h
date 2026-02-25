@@ -13,6 +13,7 @@ public:
     virtual void MoveFile(size_t from, size_t to) = 0;
     virtual void Sort(SortField field, SortOrder order) = 0;
     virtual bool UpdateAvailability(size_t row) = 0;
+    virtual void DeleteFile(size_t index) = 0;
 
     virtual void AddFilesInLibrary(const std::vector<std::filesystem::path> &files) = 0;
 

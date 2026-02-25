@@ -12,7 +12,7 @@ void MediaLibrary::AddFile(MediaInfo &&file)
     media_files_.push_back(std::move(file));
 }
 
-void MediaLibrary::RemoveFile(size_t index)
+void MediaLibrary::DeleteFile(size_t index)
 {
     if (index >= media_files_.size())
     {

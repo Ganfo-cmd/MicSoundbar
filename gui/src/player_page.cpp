@@ -2,6 +2,7 @@
 #include "play_button_delegate.h"
 
 #include <QDir>
+#include <QMenu>
 #include <QFileDialog>
 #include <QVBoxLayout>
 #include <QHeaderView>
@@ -67,6 +68,9 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     table_view_->setSelectionBehavior(QAbstractItemView::SelectRows);
     table_view_->setSelectionMode(QAbstractItemView::SingleSelection);
     table_view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table_view_->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    connect(table_view_, &QTableView::customContextMenuRequested, this, &PlayerPage::ShowContexMenu);
 
     main_layout->addWidget(table_view_);
 
@@ -136,4 +140,24 @@ void PlayerPage::SearchDown()
     QModelIndex index = table_model_->index(row, 0);
     table_view_->setCurrentIndex(index);
     table_view_->scrollTo(index, QAbstractItemView::EnsureVisible);
+}
+
+void PlayerPage::ShowContexMenu(const QPoint &pos)
+{
+    QModelIndex index = table_view_->indexAt(pos);
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    int row = index.row();
+
+    QMenu menu(this);
+    QAction *delete_file = menu.addAction("Удалить");
+    QAction *selected_action = menu.exec(table_view_->viewport()->mapToGlobal(pos));
+
+    if (selected_action == delete_file)
+    {
+        table_model_->DeleteFile(row);
+    }
 }

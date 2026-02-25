@@ -64,3 +64,8 @@ bool MediaFileHandler::UpdateAvailability(size_t row)
     media_library_.UpdateAvailability(exists, row);
     return exists;
 }
+
+void MediaFileHandler::DeleteFile(size_t index)
+{
+    media_library_.DeleteFile(index);
+}

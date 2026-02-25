@@ -24,6 +24,8 @@ private slots:
     void SearchUp();
     void SearchDown();
 
+    void ShowContexMenu(const QPoint &pos);
+
 private:
     ToolBar *toolbar_widget_ = nullptr;
     QTableView *table_view_ = nullptr;
