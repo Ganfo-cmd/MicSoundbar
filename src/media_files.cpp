@@ -5,6 +5,11 @@ MediaFileHandler::MediaFileHandler() : media_json_("D:\\audio\\library.json")
     Initialize();
 }
 
+MediaFileHandler::~MediaFileHandler()
+{
+    media_json_.Save(media_library_.GetAllMediaInfo(), next_id_);
+}
+
 void MediaFileHandler::Initialize()
 {
     bool success;

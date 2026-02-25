@@ -10,7 +10,7 @@ class MediaFileHandler : public InterfaceMediaFileHandler
 {
 public:
     MediaFileHandler();
-    ~MediaFileHandler() = default;
+    ~MediaFileHandler();
 
     void Initialize();
 
@@ -19,7 +19,7 @@ public:
     bool UpdateAvailability(size_t row) override;
     void DeleteFile(size_t index) override;
 
-    void AddFilesInLibrary(const std::vector<std::filesystem::path>& files) override;
+    void AddFilesInLibrary(const std::vector<std::filesystem::path> &files) override;
 
     size_t Size() const override;
     const MediaInfo &GetMediaFileInfo(size_t index) const override;
