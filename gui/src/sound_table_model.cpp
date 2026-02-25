@@ -7,6 +7,9 @@
 SoundTableModel::SoundTableModel(InterfaceMediaFileHandler &media_handler, QObject *parent)
     : media_handler_(media_handler), QAbstractTableModel(parent)
 {
+    autosave_timer_.setInterval(5000);
+    autosave_timer_.setSingleShot(true);
+    connect(&autosave_timer_, &QTimer::timeout, this, &SoundTableModel::SaveData);
 }
 
 int SoundTableModel::rowCount(const QModelIndex &parent) const
@@ -173,6 +176,7 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     media_handler_.MoveFile(source_row, destination_row);
     endMoveRows();
 
+    StartAutosaveTimer();
     return true;
 }
 
@@ -248,6 +252,8 @@ void SoundTableModel::sort(int column, Qt::SortOrder order)
     beginResetModel();
     media_handler_.Sort(field, sort_order);
     endResetModel();
+
+    StartAutosaveTimer();
 }
 
 const MediaInfo &SoundTableModel::GetFileInfo(int row) const
@@ -311,6 +317,8 @@ void SoundTableModel::DeleteFile(int row)
     beginRemoveRows(QModelIndex(), row, row);
     media_handler_.DeleteFile(row);
     endRemoveRows();
+
+    autosave_timer_.start();
 }
 
 void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
@@ -328,6 +336,13 @@ void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path>
     media_handler_.AddFilesInLibrary(files);
 
     endInsertRows();
+
+    StartAutosaveTimer();
+}
+
+void SoundTableModel::SaveData()
+{
+    media_handler_.SaveData();
 }
 
 void SoundTableModel::SetSearchText(const QString &text)
@@ -349,4 +364,9 @@ bool SoundTableModel::IsValidRow(int row) const
     }
 
     return false;
+}
+
+void SoundTableModel::StartAutosaveTimer()
+{
+    autosave_timer_.start();
 }

@@ -10,7 +10,7 @@ class MediaFileHandler : public InterfaceMediaFileHandler
 {
 public:
     MediaFileHandler();
-    ~MediaFileHandler();
+    ~MediaFileHandler() = default;
 
     void Initialize();
 
@@ -18,6 +18,7 @@ public:
     void Sort(SortField field, SortOrder order) override;
     bool UpdateAvailability(size_t row) override;
     void DeleteFile(size_t index) override;
+    void SaveData() override;
 
     void AddFilesInLibrary(const std::vector<std::filesystem::path> &files) override;
 

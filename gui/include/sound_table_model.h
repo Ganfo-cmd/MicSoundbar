@@ -4,6 +4,7 @@
 
 #include <QAbstractTableModel>
 #include <QMimeData>
+#include <QTimer>
 
 static constexpr uint64_t INVALID_ID = 0;
 
@@ -47,15 +48,18 @@ public:
     bool UpdateAvailability(int row);
     void DeleteFile(int row);
     void AddFilesInLibrary(const std::vector<std::filesystem::path> &files);
+    void SaveData();
 
 public slots:
     void SetSearchText(const QString &text);
 
 private:
+    QTimer autosave_timer_;
     QString search_text_;
     int current_search_row_ = -1;
     uint64_t playing_file_id_ = INVALID_ID;
     InterfaceMediaFileHandler &media_handler_;
 
     bool IsValidRow(int row) const;
+    void StartAutosaveTimer();
 };

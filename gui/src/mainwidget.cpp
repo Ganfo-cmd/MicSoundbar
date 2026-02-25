@@ -10,7 +10,7 @@
 #include <string>
 
 MainWidget::MainWidget(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
-    : QWidget(parent)
+    : media_handler_(media_handler), QWidget(parent)
 {
     resize(1000, 650);
     setMinimumSize(800, 630);
@@ -96,4 +96,10 @@ MainWidget::MainWidget(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
 
     connect(list_widget_, &QListWidget::currentRowChanged,
             stack_widget_, &QStackedWidget::setCurrentIndex);
+}
+
+void MainWidget::closeEvent(QCloseEvent *event)
+{
+    media_handler_.SaveData();
+    QWidget::closeEvent(event);
 }

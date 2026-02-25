@@ -5,11 +5,6 @@ MediaFileHandler::MediaFileHandler() : media_json_("D:\\audio\\library.json")
     Initialize();
 }
 
-MediaFileHandler::~MediaFileHandler()
-{
-    media_json_.Save(media_library_.GetAllMediaInfo(), next_id_);
-}
-
 void MediaFileHandler::Initialize()
 {
     bool success;
@@ -37,6 +32,24 @@ void MediaFileHandler::Sort(SortField field, SortOrder order)
     media_library_.Sort(field, order);
 }
 
+bool MediaFileHandler::UpdateAvailability(size_t row)
+{
+    const MediaInfo &file = media_library_.GetMediaFileInfo(row);
+    bool exists = std::filesystem::exists(file.path);
+    media_library_.UpdateAvailability(exists, row);
+    return exists;
+}
+
+void MediaFileHandler::DeleteFile(size_t index)
+{
+    media_library_.DeleteFile(index);
+}
+
+void MediaFileHandler::SaveData()
+{
+    media_json_.Save(media_library_.GetAllMediaInfo(), next_id_);
+}
+
 void MediaFileHandler::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
 {
     auto list = media_scanner_.ScanListFiles(files, next_id_);
@@ -60,17 +73,4 @@ const MediaInfo &MediaFileHandler::GetMediaFileInfo(size_t index) const
 const std::vector<MediaInfo> &MediaFileHandler::GetAllMediaInfo() const
 {
     return media_library_.GetAllMediaInfo();
-}
-
-bool MediaFileHandler::UpdateAvailability(size_t row)
-{
-    const MediaInfo &file = media_library_.GetMediaFileInfo(row);
-    bool exists = std::filesystem::exists(file.path);
-    media_library_.UpdateAvailability(exists, row);
-    return exists;
-}
-
-void MediaFileHandler::DeleteFile(size_t index)
-{
-    media_library_.DeleteFile(index);
 }

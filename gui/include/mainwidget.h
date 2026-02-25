@@ -17,8 +17,12 @@ public:
     MainWidget(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent = nullptr);
     ~MainWidget() = default;
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private:
     QListWidget *list_widget_ = nullptr;
     QStackedWidget *stack_widget_ = nullptr;
+    InterfaceMediaFileHandler &media_handler_;
 };
 #endif // MAINWIDGET_H
