@@ -22,6 +22,11 @@ void MediaFileHandler::Initialize()
     }
 }
 
+void MediaFileHandler::RenameFile(size_t index, std::string new_name)
+{
+    media_library_.RenameFile(index, new_name);
+}
+
 void MediaFileHandler::MoveFile(size_t from, size_t to)
 {
     media_library_.MoveFile(from, to);

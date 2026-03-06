@@ -41,7 +41,7 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
 
     const MediaInfo &file = media_handler_.GetMediaFileInfo(index.row());
 
-    if (role == Qt::DisplayRole)
+    if (role == Qt::DisplayRole || role == Qt::EditRole)
     {
         switch (index.column())
         {
@@ -117,9 +117,16 @@ Qt::ItemFlags SoundTableModel::flags(const QModelIndex &index) const
     Qt::ItemFlags flags = QAbstractTableModel::flags(index);
     flags |= Qt::ItemIsDropEnabled;
 
-    if (index.isValid())
+    if (!index.isValid())
     {
-        flags |= Qt::ItemIsDragEnabled;
+        return flags;
+    }
+
+    flags |= Qt::ItemIsDragEnabled;
+
+    if (index.column() == ColumnName)
+    {
+        flags |= Qt::ItemIsEditable;
     }
 
     return flags;
@@ -183,6 +190,18 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
 Qt::DropActions SoundTableModel::supportedDropActions() const
 {
     return Qt::MoveAction;
+}
+
+bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (role == Qt::EditRole && index.column() == ColumnName)
+    {
+        media_handler_.RenameFile(index.row(), value.toString().toStdString());
+        emit dataChanged(index, index, {Qt::DisplayRole});
+        return true;
+    }
+
+    return false;
 }
 
 int SoundTableModel::FindNextMatchRow()

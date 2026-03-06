@@ -10,6 +10,7 @@ class InterfaceMediaFileHandler
 public:
     virtual ~InterfaceMediaFileHandler() = default;
 
+    virtual void RenameFile(size_t index, std::string new_name) = 0;
     virtual void MoveFile(size_t from, size_t to) = 0;
     virtual void Sort(SortField field, SortOrder order) = 0;
     virtual bool UpdateAvailability(size_t row) = 0;

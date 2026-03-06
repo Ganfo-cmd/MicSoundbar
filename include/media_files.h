@@ -14,6 +14,7 @@ public:
 
     void Initialize();
 
+    void RenameFile(size_t index, std::string new_name) override;
     void MoveFile(size_t from, size_t to) override;
     void Sort(SortField field, SortOrder order) override;
     bool UpdateAvailability(size_t row) override;

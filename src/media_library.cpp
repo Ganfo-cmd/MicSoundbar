@@ -22,6 +22,16 @@ void MediaLibrary::DeleteFile(size_t index)
     media_files_.erase(media_files_.begin() + index);
 }
 
+void MediaLibrary::RenameFile(size_t index, std::string new_name)
+{
+    if (index >= media_files_.size())
+    {
+        return;
+    }
+
+    media_files_[index].name = std::move(new_name);
+}
+
 void MediaLibrary::MoveFile(size_t from, size_t to)
 {
     if (from >= media_files_.size() || to >= media_files_.size())

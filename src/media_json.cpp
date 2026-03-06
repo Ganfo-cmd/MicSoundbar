@@ -4,7 +4,7 @@ MediaJSON::MediaJSON(const std::string &file_path) : file_path_(file_path)
 {
 }
 
-std::string MediaJSON::EscapePath(const std::string &path) const
+std::string MediaJSON::EscapeJsonString(const std::string &path) const
 {
     std::string result;
     result.reserve(path.size());
@@ -14,6 +14,10 @@ std::string MediaJSON::EscapePath(const std::string &path) const
         if (ch == '\\')
         {
             result += "\\\\";
+        }
+        else if (ch == '"')
+        {
+            result += "\\\"";
         }
         else
         {
@@ -45,8 +49,8 @@ bool MediaJSON::Save(const std::vector<MediaInfo> &media_list, uint64_t next_id)
             const MediaInfo &media = media_list[i];
             file << "    {\n";
             file << "      \"id\": " << media.id << ",\n";
-            file << "      \"name\": \"" << media.name << "\",\n";
-            file << "      \"path\": \"" << EscapePath(media.path) << "\",\n";
+            file << "      \"name\": \"" << EscapeJsonString(media.name) << "\",\n";
+            file << "      \"path\": \"" << EscapeJsonString(media.path) << "\",\n";
             file << "      \"duration\": " << media.duration << "\n";
             file << "    }";
 

@@ -21,5 +21,5 @@ private:
     uint64_t LoadId(std::ifstream &file) const;
     uint32_t LoadDuration(std::ifstream &file) const;
 
-    std::string EscapePath(const std::string &path) const;
+    std::string EscapeJsonString(const std::string &path) const;
 };

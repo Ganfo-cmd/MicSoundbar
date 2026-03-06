@@ -12,6 +12,7 @@ public:
     void AddFile(const MediaInfo &file);
     void AddFile(MediaInfo &&file);
     void DeleteFile(size_t index);
+    void RenameFile(size_t index, std::string new_name);
     void MoveFile(size_t from, size_t to);
     void Sort(SortField field, SortOrder order);
     void UpdateAvailability(bool is_available, size_t row);

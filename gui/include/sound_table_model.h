@@ -38,6 +38,8 @@ public:
                       int row, int column, const QModelIndex &parent) override;
     Qt::DropActions supportedDropActions() const override;
 
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+
     int FindNextMatchRow();
     int FindPrevMatchRow();
     void sort(int column, Qt::SortOrder order) override;

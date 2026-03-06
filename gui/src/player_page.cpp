@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QProcess>
+#include <QShortcut>
 
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
     : QWidget(parent), player_(player)
@@ -79,6 +80,16 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     connect(toolbar_widget_, &ToolBar::AddFileClicked, this, &PlayerPage::AddFiles);
     connect(toolbar_widget_, &ToolBar::UpArrowClicked, this, &PlayerPage::SearchUp);
     connect(toolbar_widget_, &ToolBar::DownArrowClicked, this, &PlayerPage::SearchDown);
+
+    QShortcut *rename_shortcut = new QShortcut(QKeySequence(Qt::Key_F2), table_view_);
+
+    connect(rename_shortcut, &QShortcut::activated, this, [this]()
+            {
+                QModelIndex index = table_view_->currentIndex();
+                if (index.isValid())
+                {
+                    table_view_->edit(index);
+                } });
 }
 
 void PlayerPage::ChangeMicVolume(int volume)
@@ -156,6 +167,9 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
     QMenu menu(this);
     QAction *delete_file = menu.addAction("Удалить");
     QAction *file_location = menu.addAction("Расположение файла");
+    QAction *rename_file = menu.addAction("Переименовать");
+    rename_file->setShortcut(QKeySequence(Qt::Key_F2));
+
     QAction *selected_action = menu.exec(table_view_->viewport()->mapToGlobal(pos));
 
     if (selected_action == delete_file)
@@ -166,5 +180,15 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
     {
         const char *str_char = table_model_->GetFileInfo(row).path.c_str();
         QProcess::startDetached("explorer.exe", QStringList{"/select,", str_char});
+    }
+    else if (selected_action == rename_file)
+    {
+        QModelIndex index = table_model_->index(row, ColumnName);
+        if (!index.isValid())
+        {
+            return;
+        }
+
+        table_view_->edit(index);
     }
 }
