@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include <QVBoxLayout>
 #include <QHeaderView>
+#include <QProcess>
 
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
     : QWidget(parent), player_(player)
@@ -154,10 +155,16 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
 
     QMenu menu(this);
     QAction *delete_file = menu.addAction("Удалить");
+    QAction *file_location = menu.addAction("Расположение файла");
     QAction *selected_action = menu.exec(table_view_->viewport()->mapToGlobal(pos));
 
     if (selected_action == delete_file)
     {
         table_model_->DeleteFile(row);
+    }
+    else if (selected_action == file_location)
+    {
+        const char *str_char = table_model_->GetFileInfo(row).path.c_str();
+        QProcess::startDetached("explorer.exe", QStringList{"/select,", str_char});
     }
 }
