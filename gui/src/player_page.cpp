@@ -109,7 +109,7 @@ void PlayerPage::AddFiles()
     paths.reserve(files.size());
     for (const QString &file : files)
     {
-        paths.emplace_back(file.toStdString());
+        paths.emplace_back(QDir::toNativeSeparators(file).toStdString());
     }
 
     table_model_->AddFilesInLibrary(paths);
