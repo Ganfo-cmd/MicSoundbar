@@ -8,6 +8,7 @@ struct MediaInfo
     std::string name;
     std::string path;
     uint32_t duration;
+    std::string hotkey;
     bool available = true;
 };
 

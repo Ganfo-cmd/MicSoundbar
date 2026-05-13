@@ -52,8 +52,12 @@ public:
     void AddFilesInLibrary(const std::vector<std::filesystem::path> &files);
     void SaveData();
 
+    size_t GetMediaFileIndexById(uint64_t id) const;
 public slots:
     void SetSearchText(const QString &text);
+
+signals:
+    void HotkeyChange(uint64_t id, const QString &key);
 
 private:
     QTimer autosave_timer_;

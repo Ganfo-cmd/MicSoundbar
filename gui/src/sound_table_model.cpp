@@ -3,6 +3,7 @@
 #include <QString>
 #include <QBrush>
 #include <QFont>
+#include <QKeySequence>
 
 SoundTableModel::SoundTableModel(InterfaceMediaFileHandler &media_handler, QObject *parent)
     : media_handler_(media_handler), QAbstractTableModel(parent)
@@ -48,9 +49,14 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         case ColumnName:
             return QString::fromStdString(file.name);
         case ColumnDuration:
+        {
             int minutes = file.duration / 60;
             int seconds = file.duration % 60;
             return QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
+        }
+        case ColumnHotKey:
+            QKeySequence seq(QString::fromStdString(file.hotkey));
+            return seq.toString(QKeySequence::NativeText);
         }
     }
 
@@ -124,7 +130,7 @@ Qt::ItemFlags SoundTableModel::flags(const QModelIndex &index) const
 
     flags |= Qt::ItemIsDragEnabled;
 
-    if (index.column() == ColumnName)
+    if (index.column() == ColumnName || index.column() == ColumnHotKey)
     {
         flags |= Qt::ItemIsEditable;
     }
@@ -194,10 +200,32 @@ Qt::DropActions SoundTableModel::supportedDropActions() const
 
 bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (role == Qt::EditRole && index.column() == ColumnName)
+    if (role != Qt::EditRole)
+    {
+        return false;
+    }
+
+    if (index.column() == ColumnName)
     {
         media_handler_.RenameFile(index.row(), value.toString().toStdString());
         emit dataChanged(index, index, {Qt::DisplayRole});
+        return true;
+    }
+
+    if (index.column() == ColumnHotKey)
+    {
+        QString key = value.toString();
+        auto previous_owner = media_handler_.ChangeHotkey(index.row(), key.toStdString());
+        if (previous_owner)
+        {
+            QModelIndex prev_index = this->index(static_cast<int>(*previous_owner), ColumnHotKey);
+            emit dataChanged(prev_index, prev_index, {Qt::DisplayRole});
+        }
+
+        const MediaInfo &media_file = media_handler_.GetMediaFileInfo(index.row());
+
+        emit dataChanged(index, index, {Qt::DisplayRole});
+        emit HotkeyChange(media_file.id, key);
         return true;
     }
 
@@ -362,6 +390,11 @@ void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path>
 void SoundTableModel::SaveData()
 {
     media_handler_.SaveData();
+}
+
+size_t SoundTableModel::GetMediaFileIndexById(uint64_t id) const
+{
+    return media_handler_.GetMediaFileIndexById(id);
 }
 
 void SoundTableModel::SetSearchText(const QString &text)

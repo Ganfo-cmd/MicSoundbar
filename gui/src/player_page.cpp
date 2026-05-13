@@ -1,5 +1,6 @@
 #include "player_page.h"
 #include "play_button_delegate.h"
+#include "hotkey_delegate.h"
 
 #include <QDir>
 #include <QMenu>
@@ -7,11 +8,14 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QProcess>
-#include <QShortcut>
+#include <QApplication>
+#include <QKeyEvent>
+#include <QKeySequenceEdit>
 
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
-    : QWidget(parent), player_(player)
+    : QWidget(parent), player_(player), media_handler_(media_handler)
 {
+    qApp->installEventFilter(this);
     QVBoxLayout *main_layout = new QVBoxLayout(this);
     main_layout->setSpacing(0);
     main_layout->setContentsMargins(0, 0, 0, 0);
@@ -62,6 +66,9 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
                 player_.Play(info.path);
             });
 
+    HotkeyDelegate *hotkey_delegate = new HotkeyDelegate(this);
+    table_view_->setItemDelegateForColumn(ColumnHotKey, hotkey_delegate);
+
     table_view_->horizontalHeader()->setSectionResizeMode(ColumnPlayButton, QHeaderView::Fixed);
     table_view_->setColumnWidth(ColumnPlayButton, 20);
     table_view_->setColumnWidth(ColumnName, 500);
@@ -86,10 +93,37 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     connect(rename_shortcut, &QShortcut::activated, this, [this]()
             {
                 QModelIndex index = table_view_->currentIndex();
-                if (index.isValid())
+                if (index.isValid() && index.column() != ColumnHotKey)
                 {
                     table_view_->edit(index);
                 } });
+
+    connect(table_view_, &QTableView::doubleClicked,
+            this, [this](const QModelIndex &index)
+            {
+                if (index.isValid() && index.column() == ColumnHotKey) 
+                { 
+                    table_view_->edit(index);
+                } });
+
+    connect(table_model_, &SoundTableModel::HotkeyChange, this, [this](uint64_t id, QKeySequence key)
+            {
+                if(key.isEmpty())
+                {
+                    RemoveHotkey(id);
+                }
+                else
+                {
+                    RegisterHotkey(id, key);
+                } });
+
+    for (const auto &info : media_handler_.GetAllMediaInfo())
+    {
+        if (!info.hotkey.empty())
+        {
+            ChangeHotkey(info.id, QString::fromStdString(info.hotkey));
+        }
+    }
 }
 
 void PlayerPage::ChangeMicVolume(int volume)
@@ -191,4 +225,83 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
 
         table_view_->edit(index);
     }
+}
+
+void PlayerPage::RegisterHotkey(uint64_t id, const QKeySequence &seq)
+{
+    if (seq.count() != 1)
+    {
+        return;
+    }
+
+    QKeyCombination combo = seq[0];
+
+    Hotkey hk;
+    hk.key = combo.key();
+    hk.mods = combo.keyboardModifiers();
+
+    hotkey_to_id_[hk] = id;
+    id_to_hotkey_[id] = hk;
+}
+
+void PlayerPage::RemoveHotkey(uint64_t id)
+{
+    auto it = id_to_hotkey_.find(id);
+    if (it == id_to_hotkey_.end())
+    {
+        return;
+    }
+
+    hotkey_to_id_.erase(it->second);
+    id_to_hotkey_.erase(it);
+}
+
+bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() != QEvent::KeyPress)
+        return QWidget::eventFilter(obj, event);
+
+    QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
+    if (key_event->isAutoRepeat())
+        return QWidget::eventFilter(obj, event);
+
+    QWidget *focus_widget = QApplication::focusWidget();
+    if (focus_widget && qobject_cast<QKeySequenceEdit *>(focus_widget))
+        return QWidget::eventFilter(obj, event);
+
+    Hotkey hk;
+    hk.key = key_event->key();
+    hk.mods = key_event->modifiers();
+
+    auto it = hotkey_to_id_.find(hk);
+    if (it == hotkey_to_id_.end())
+    {
+        return QWidget::eventFilter(obj, event);
+    }
+
+    uint64_t id = it->second;
+    auto row = table_model_->GetMediaFileIndexById(id);
+    if (!table_model_->UpdateAvailability(row))
+    {
+        player_.Stop();
+        return true;
+    }
+
+    const MediaInfo &info = table_model_->GetFileInfo(row);
+    table_model_->SetPlayingRow(row);
+    player_.Play(info.path);
+
+    return true;
+}
+
+void PlayerPage::ChangeHotkey(uint64_t id, const QString &key)
+{
+    RemoveHotkey(id);
+
+    if (key.isEmpty())
+    {
+        return;
+    }
+
+    RegisterHotkey(id, QKeySequence(key));
 }

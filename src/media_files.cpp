@@ -22,6 +22,11 @@ void MediaFileHandler::Initialize()
     }
 }
 
+std::optional<size_t> MediaFileHandler::ChangeHotkey(size_t index, std::string hotkey)
+{
+    return media_library_.ChangeHotkey(index, hotkey);
+}
+
 void MediaFileHandler::RenameFile(size_t index, std::string new_name)
 {
     media_library_.RenameFile(index, new_name);
@@ -78,4 +83,9 @@ const MediaInfo &MediaFileHandler::GetMediaFileInfo(size_t index) const
 const std::vector<MediaInfo> &MediaFileHandler::GetAllMediaInfo() const
 {
     return media_library_.GetAllMediaInfo();
+}
+
+size_t MediaFileHandler::GetMediaFileIndexById(uint64_t id) const
+{
+    return media_library_.GetMediaFileIndexById(id);
 }

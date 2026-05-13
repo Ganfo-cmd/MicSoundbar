@@ -13,6 +13,7 @@ set(GUI_Headers
     include/sound_table_model.h
     include/play_button_delegate.h
     include/player_page_toolbar.h
+    include/hotkey_delegate.h
 )
 
 set(GUI_Sources
@@ -22,6 +23,7 @@ set(GUI_Sources
     src/sound_table_model.cpp
     src/play_button_delegate.cpp
     src/player_page_toolbar.cpp
+    src/hotkey_delegate.cpp
 )
 
 # Создаем GUI библиотеку
