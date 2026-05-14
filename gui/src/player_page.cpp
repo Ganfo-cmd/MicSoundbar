@@ -5,7 +5,6 @@
 #include <QDir>
 #include <QMenu>
 #include <QFileDialog>
-#include <QVBoxLayout>
 #include <QHeaderView>
 #include <QProcess>
 #include <QApplication>
@@ -15,11 +14,26 @@
 PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
     : QWidget(parent), player_(player), media_handler_(media_handler)
 {
+    InitializeUI();
+    LoadHotkeys();
+}
+
+void PlayerPage::InitializeUI()
+{
     qApp->installEventFilter(this);
+
     QVBoxLayout *main_layout = new QVBoxLayout(this);
+
     main_layout->setSpacing(0);
     main_layout->setContentsMargins(0, 0, 0, 0);
 
+    InitializeToolBar(main_layout);
+    InitializeTable(main_layout);
+    InitializeConnections();
+}
+
+void PlayerPage::InitializeToolBar(QVBoxLayout *main_layout)
+{
     toolbar_widget_ = new ToolBar(this);
 
     connect(toolbar_widget_, &ToolBar::MicVolumeChanged,
@@ -28,15 +42,33 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     connect(toolbar_widget_, &ToolBar::HeadphoneVolumeChanged,
             this, &PlayerPage::ChangeHeadphoneVolume);
 
+    connect(toolbar_widget_, &ToolBar::AddFileClicked, this, &PlayerPage::AddFiles);
+    connect(toolbar_widget_, &ToolBar::UpArrowClicked, this, &PlayerPage::SearchUp);
+    connect(toolbar_widget_, &ToolBar::DownArrowClicked, this, &PlayerPage::SearchDown);
+
     main_layout->addWidget(toolbar_widget_);
+}
 
-    table_model_ = new SoundTableModel(media_handler, this);
+void PlayerPage::InitializeTable(QVBoxLayout *main_layout)
+{
+    table_model_ = new SoundTableModel(media_handler_, this);
 
+    InitializeTableView();
+    InitializeDelegates();
+    InitializeShortcuts();
+
+    main_layout->addWidget(table_view_);
+}
+
+void PlayerPage::InitializeTableView()
+{
     table_view_ = new QTableView(this);
     table_view_->setModel(table_model_);
+
     table_view_->setShowGrid(false);
     table_view_->setFocusPolicy(Qt::NoFocus);
     table_view_->verticalHeader()->setVisible(false);
+
     table_view_->setStyleSheet("QHeaderView::section {font-weight: normal;}");
 
     table_view_->setDragEnabled(true);
@@ -45,29 +77,6 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     table_view_->setDragDropMode(QAbstractItemView::InternalMove);
 
     table_view_->setSortingEnabled(true);
-
-    connect(toolbar_widget_, &ToolBar::SortDisable, table_view_, [this](bool sort_disable)
-            { table_view_->horizontalHeader()->setSectionsClickable(!sort_disable); });
-
-    PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
-    table_view_->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
-
-    connect(play_button_delegate, &PlayButtonDelegate::PlaySound, this,
-            [this](int row)
-            {
-                if (!table_model_->UpdateAvailability(row))
-                {
-                    player_.Stop();
-                    return;
-                }
-
-                const MediaInfo &info = table_model_->GetFileInfo(row);
-                table_model_->SetPlayingRow(row);
-                player_.Play(info.path);
-            });
-
-    HotkeyDelegate *hotkey_delegate = new HotkeyDelegate(this);
-    table_view_->setItemDelegateForColumn(ColumnHotKey, hotkey_delegate);
 
     table_view_->horizontalHeader()->setSectionResizeMode(ColumnPlayButton, QHeaderView::Fixed);
     table_view_->setColumnWidth(ColumnPlayButton, 20);
@@ -80,14 +89,23 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     table_view_->setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(table_view_, &QTableView::customContextMenuRequested, this, &PlayerPage::ShowContexMenu);
+}
 
-    main_layout->addWidget(table_view_);
+void PlayerPage::InitializeDelegates()
+{
+    PlayButtonDelegate *play_button_delegate = new PlayButtonDelegate(this);
+    table_view_->setItemDelegateForColumn(ColumnPlayButton, play_button_delegate);
 
-    connect(toolbar_widget_, &ToolBar::SearchTextChanged, table_model_, &SoundTableModel::SetSearchText);
-    connect(toolbar_widget_, &ToolBar::AddFileClicked, this, &PlayerPage::AddFiles);
-    connect(toolbar_widget_, &ToolBar::UpArrowClicked, this, &PlayerPage::SearchUp);
-    connect(toolbar_widget_, &ToolBar::DownArrowClicked, this, &PlayerPage::SearchDown);
+    connect(play_button_delegate, &PlayButtonDelegate::PlaySound, this,
+            [this](int row)
+            { PlayRow(row); });
 
+    HotkeyDelegate *hotkey_delegate = new HotkeyDelegate(this);
+    table_view_->setItemDelegateForColumn(ColumnHotKey, hotkey_delegate);
+}
+
+void PlayerPage::InitializeShortcuts()
+{
     QShortcut *rename_shortcut = new QShortcut(QKeySequence(Qt::Key_F2), table_view_);
 
     connect(rename_shortcut, &QShortcut::activated, this, [this]()
@@ -97,6 +115,14 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
                 {
                     table_view_->edit(index);
                 } });
+}
+
+void PlayerPage::InitializeConnections()
+{
+    connect(toolbar_widget_, &ToolBar::SortDisable, table_view_, [this](bool sort_disable)
+            { table_view_->horizontalHeader()->setSectionsClickable(!sort_disable); });
+
+    connect(toolbar_widget_, &ToolBar::SearchTextChanged, table_model_, &SoundTableModel::SetSearchText);
 
     connect(table_view_, &QTableView::doubleClicked,
             this, [this](const QModelIndex &index)
@@ -116,7 +142,10 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
                 {
                     RegisterHotkey(id, key);
                 } });
+}
 
+void PlayerPage::LoadHotkeys()
+{
     for (const auto &info : media_handler_.GetAllMediaInfo())
     {
         if (!info.hotkey.empty())
@@ -124,6 +153,31 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
             ChangeHotkey(info.id, QString::fromStdString(info.hotkey));
         }
     }
+}
+
+void PlayerPage::PlayRow(int row)
+{
+    if (!table_model_->UpdateAvailability(row))
+    {
+        player_.Stop();
+        return;
+    }
+
+    const MediaInfo &info = table_model_->GetFileInfo(row);
+    table_model_->SetPlayingRow(row);
+    player_.Play(info.path);
+}
+
+void PlayerPage::SelectRow(int row)
+{
+    if (row < 0)
+    {
+        return;
+    }
+
+    QModelIndex index = table_model_->index(row, 0);
+    table_view_->setCurrentIndex(index);
+    table_view_->scrollTo(index, QAbstractItemView::EnsureVisible);
 }
 
 void PlayerPage::ChangeMicVolume(int volume)
@@ -162,30 +216,12 @@ void PlayerPage::AddFiles()
 
 void PlayerPage::SearchUp()
 {
-    int row = table_model_->FindNextMatchRow();
-
-    if (row < 0)
-    {
-        return;
-    }
-
-    QModelIndex index = table_model_->index(row, 0);
-    table_view_->setCurrentIndex(index);
-    table_view_->scrollTo(index, QAbstractItemView::EnsureVisible);
+    SelectRow(table_model_->FindNextMatchRow());
 }
 
 void PlayerPage::SearchDown()
 {
-    int row = table_model_->FindPrevMatchRow();
-
-    if (row < 0)
-    {
-        return;
-    }
-
-    QModelIndex index = table_model_->index(row, 0);
-    table_view_->setCurrentIndex(index);
-    table_view_->scrollTo(index, QAbstractItemView::EnsureVisible);
+    SelectRow(table_model_->FindPrevMatchRow());
 }
 
 void PlayerPage::ShowContexMenu(const QPoint &pos)
@@ -217,12 +253,6 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
     }
     else if (selected_action == rename_file)
     {
-        QModelIndex index = table_model_->index(row, ColumnName);
-        if (!index.isValid())
-        {
-            return;
-        }
-
         table_view_->edit(index);
     }
 }
@@ -281,15 +311,7 @@ bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
 
     uint64_t id = it->second;
     auto row = table_model_->GetMediaFileIndexById(id);
-    if (!table_model_->UpdateAvailability(row))
-    {
-        player_.Stop();
-        return true;
-    }
-
-    const MediaInfo &info = table_model_->GetFileInfo(row);
-    table_model_->SetPlayingRow(row);
-    player_.Play(info.path);
+    PlayRow(row);
 
     return true;
 }

@@ -9,6 +9,7 @@
 
 #include <QTableView>
 #include <QShortcut>
+#include <QVBoxLayout>
 #include <unordered_map>
 
 class PlayerPage : public QWidget
@@ -18,9 +19,6 @@ class PlayerPage : public QWidget
 public:
     explicit PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent = nullptr);
     ~PlayerPage() = default;
-
-    void RegisterHotkey(uint64_t id, const QKeySequence &seq);
-    void RemoveHotkey(uint64_t id);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -58,6 +56,22 @@ private:
         }
     };
 
+    void InitializeUI();
+    void InitializeToolBar(QVBoxLayout *main_layout);
+    void InitializeTable(QVBoxLayout *main_layout);
+    void InitializeTableView();
+    void InitializeDelegates();
+    void InitializeShortcuts();
+    void InitializeConnections();
+    void LoadHotkeys();
+
+    void PlayRow(int row);
+    void SelectRow(int row);
+
+    void RegisterHotkey(uint64_t id, const QKeySequence &seq);
+    void RemoveHotkey(uint64_t id);
+
+    AudioInterfacePlayer &player_;
     InterfaceMediaFileHandler &media_handler_;
     std::unordered_map<uint64_t, Hotkey> id_to_hotkey_;
     std::unordered_map<Hotkey, uint64_t, HotkeyHash> hotkey_to_id_;
@@ -65,8 +79,6 @@ private:
     ToolBar *toolbar_widget_ = nullptr;
     QTableView *table_view_ = nullptr;
     SoundTableModel *table_model_ = nullptr;
-
-    AudioInterfacePlayer &player_;
 };
 
 #endif // PLAYER_PAGE_H
