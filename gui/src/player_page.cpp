@@ -216,12 +216,12 @@ void PlayerPage::AddFiles()
 
 void PlayerPage::SearchUp()
 {
-    SelectRow(table_model_->FindNextMatchRow());
+    SelectRow(table_model_->FindPrevMatchRow());
 }
 
 void PlayerPage::SearchDown()
 {
-    SelectRow(table_model_->FindPrevMatchRow());
+    SelectRow(table_model_->FindNextMatchRow());
 }
 
 void PlayerPage::ShowContexMenu(const QPoint &pos)
