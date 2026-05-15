@@ -1,9 +1,13 @@
 #include "player_page_toolbar.h"
 
-#include <QVBoxLayout>
 #include <QStyleOptionSlider>
 
 ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
+{
+    InitializeUI();
+}
+
+void ToolBar::InitializeUI()
 {
     Q_INIT_RESOURCE(icons);
 
@@ -14,18 +18,28 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
     QHBoxLayout *toolbar_layout = new QHBoxLayout;
     setLayout(toolbar_layout);
 
+    InitializeAddFileButton(toolbar_layout);
+    InitializeSearchBar(toolbar_layout);
+    InitializeCheckboxes(toolbar_layout);
+    InitializeVolumeControllers(toolbar_layout);
+}
+
+void ToolBar::InitializeAddFileButton(QHBoxLayout *toolbar_layout)
+{
     QPushButton *add_file_button = new QPushButton("Добавить файл", this);
     toolbar_layout->addWidget(add_file_button);
 
     connect(add_file_button, &QPushButton::clicked,
             this, &ToolBar::AddFileClicked);
+}
 
+void ToolBar::InitializeSearchBar(QHBoxLayout *toolbar_layout)
+{
     search_line_edit_ = new QLineEdit(this);
     toolbar_layout->addWidget(search_line_edit_);
 
     connect(search_line_edit_, &QLineEdit::textChanged, this, &ToolBar::SearchTextChanged);
 
-    QVBoxLayout *up_and_down_button_layout = new QVBoxLayout;
     up_button_ = new QPushButton(this);
     up_button_->setFixedSize(22, 22);
     up_button_->setIcon(QIcon(":/icons/up_arrow.png"));
@@ -42,20 +56,20 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
     connect(down_button_, &QPushButton::clicked,
             this, &ToolBar::DownArrowClicked);
 
-    up_and_down_button_layout->addWidget(down_button_);
+    QVBoxLayout *up_and_down_button_layout = new QVBoxLayout;
     up_and_down_button_layout->addWidget(up_button_);
+    up_and_down_button_layout->addWidget(down_button_);
+
     toolbar_layout->addLayout(up_and_down_button_layout);
 
     connect(search_line_edit_, &QLineEdit::textChanged, this, [this](const QString &search_text)
-            { if(search_text.isEmpty())
-                {
-                    up_button_->hide();
-                    down_button_->hide();
-                } else{
-                    up_button_->show();
-                    down_button_->show();
-                } });
+            {   bool visible = !search_text.isEmpty();
+                up_button_->setVisible(visible);
+                down_button_->setVisible(visible); });
+}
 
+void ToolBar::InitializeCheckboxes(QHBoxLayout *toolbar_layout)
+{
     QVBoxLayout *sync_and_sort_checkbox = new QVBoxLayout;
 
     sync_volume_checkbox_ = new QCheckBox("Синхронизация звука", this);
@@ -72,174 +86,152 @@ ToolBar::ToolBar(QWidget *parent) : QWidget(parent)
     connect(sort_disable_checkbox_, &QCheckBox::toggled, this, &ToolBar::SortDisable);
 
     toolbar_layout->addLayout(sync_and_sort_checkbox);
+}
 
+void ToolBar::InitializeVolumeControllers(QHBoxLayout *toolbar_layout)
+{
     QVBoxLayout *volume_control_layout = new QVBoxLayout;
-    QHBoxLayout *mic_volume_control_layout = new QHBoxLayout;
-    QHBoxLayout *headphones_volume_control_layout = new QHBoxLayout;
 
-    mic_button_ = new QPushButton(this);
-    mic_button_->setFixedSize(22, 22);
-    icon_microphone_ = QIcon(":/icons/microphone.png");
-    icon_microphone_muted_ = QIcon(":/icons/microphone_muted.png");
-    mic_button_->setIcon(icon_microphone_);
+    InitializeController(microphone_controller_, volume_control_layout, QIcon(":/icons/microphone.png"), QIcon(":/icons/microphone_muted.png"));
+    InitializeController(headphones_controller_, volume_control_layout, QIcon(":/icons/headphone.png"), QIcon(":/icons/headphones_off.png"));
 
-    mic_slider_ = new QSlider(this);
-    mic_slider_->setRange(0, 100);
-    mic_slider_->setOrientation(Qt::Horizontal);
-    mic_slider_->setFixedSize(150, 22);
-    mic_slider_->setValue(10);
-    mic_volume_control_layout->addWidget(mic_button_, 0, Qt::AlignVCenter);
-    mic_volume_control_layout->addWidget(mic_slider_, 0, Qt::AlignVCenter);
+    InitializeMicConnections();
+    InitializeHeadphonesConnections();
 
-    mic_volume_label_ = new QLabel(this);
-    mic_volume_label_->hide();
-    mic_volume_label_->setFixedSize(28, 18);
-    mic_volume_label_->setAlignment(Qt::AlignCenter);
-    mic_volume_label_->setStyleSheet(R"(
+    toolbar_layout->addLayout(volume_control_layout);
+}
+
+void ToolBar::InitializeController(VolumeController &controller, QVBoxLayout *volume_control_layout,
+                                   const QIcon &icon, const QIcon &muted_icon)
+{
+    QHBoxLayout *slider_layout = new QHBoxLayout;
+
+    controller.button = new QPushButton(this);
+    controller.button->setFixedSize(22, 22);
+    controller.icon = icon;
+    controller.muted_icon = muted_icon;
+    controller.button->setIcon(controller.icon);
+    slider_layout->addWidget(controller.button, 0, Qt::AlignVCenter);
+
+    controller.slider = new QSlider(this);
+    auto slider = controller.slider;
+    slider->setRange(0, 100);
+    slider->setOrientation(Qt::Horizontal);
+    slider->setFixedSize(150, 22);
+    slider->setValue(10);
+    slider_layout->addWidget(slider, 0, Qt::AlignVCenter);
+
+    controller.label = new QLabel(this);
+    auto label = controller.label;
+    label->hide();
+    label->setFixedSize(28, 18);
+    label->setAlignment(Qt::AlignCenter);
+    label->setStyleSheet(R"(
     QLabel {
         background-color: white;
         color: rgba(138, 138, 138, 1);
         font-size: 11px;
         })");
 
-    connect(mic_slider_, &QSlider::sliderPressed, this, [this]()
-            { UpdateMicVolumeLabel(mic_slider_->value()); });
+    volume_control_layout->addLayout(slider_layout);
+}
 
-    connect(mic_slider_, &QSlider::sliderMoved, this, [this](int value)
-            { UpdateMicVolumeLabel(value); });
+void ToolBar::InitializeMicConnections()
+{
+    VolumeController &controller = microphone_controller_;
+    InitializeSliderLabelConnections(controller);
 
-    connect(mic_slider_, &QSlider::sliderReleased, this, [this]()
-            { mic_volume_label_->hide(); });
-
-    connect(mic_slider_, &QSlider::valueChanged, this, [this](int volume)
+    connect(controller.slider, &QSlider::valueChanged, this, [this, &controller](int volume)
             {
                 if (sync_enable_)
                 {
-                    QSignalBlocker bloker(headphones_slider_);
-                    headphones_slider_->setValue(volume);
+                    QSignalBlocker blocker(headphones_controller_.slider);
+                    headphones_controller_.slider->setValue(volume);
 
-                    if (!headphones_muted_)
+                    if (!headphones_controller_.muted)
                     {
                         emit HeadphoneVolumeChanged(volume);
                     }
                 }
 
-                if(!mic_muted_)
+                if(!controller.muted)
                 {
                     emit MicVolumeChanged(volume);
                 } });
 
-    connect(mic_button_, &QPushButton::clicked, this, [this]()
-            { mic_muted_ = !mic_muted_;
-            mic_button_->setIcon(mic_muted_ ? icon_microphone_muted_ : icon_microphone_);
-            int volume = mic_muted_ ? 0 : mic_slider_->value();
+    connect(controller.button, &QPushButton::clicked, this, [this, &controller]()
+            { controller.muted = !controller.muted;
+            controller.button->setIcon(controller.muted ? controller.muted_icon : controller.icon);
+            int volume = controller.muted ? 0 : controller.slider->value();
             emit MicVolumeChanged(volume); });
+}
 
-    headphones_button_ = new QPushButton(this);
-    headphones_button_->setFixedSize(22, 22);
-    icon_headphones_ = QIcon(":/icons/headphone.png");
-    icon_headphones_muted_ = QIcon(":/icons/headphones_off.png");
-    headphones_button_->setIcon(icon_headphones_);
-    headphones_slider_ = new QSlider(this);
-    headphones_slider_->setRange(0, 100);
-    headphones_slider_->setOrientation(Qt::Horizontal);
-    headphones_slider_->setFixedSize(150, 22);
-    headphones_slider_->setValue(10);
-    headphones_volume_control_layout->addWidget(headphones_button_, 0, Qt::AlignVCenter);
-    headphones_volume_control_layout->addWidget(headphones_slider_, 0, Qt::AlignVCenter);
+void ToolBar::InitializeHeadphonesConnections()
+{
+    VolumeController &controller = headphones_controller_;
+    InitializeSliderLabelConnections(controller);
 
-    headphone_volume_label_ = new QLabel(this);
-    headphone_volume_label_->hide();
-    headphone_volume_label_->setFixedSize(28, 18);
-    headphone_volume_label_->setAlignment(Qt::AlignCenter);
-    headphone_volume_label_->setStyleSheet(R"(
-    QLabel {
-        background-color: white;
-        color: rgba(138, 138, 138, 1);
-        font-size: 11px;
-        })");
-
-    connect(headphones_slider_, &QSlider::sliderPressed, this, [this]()
-            { UpdateHeadphoneVolumeLabel(headphones_slider_->value()); });
-
-    connect(headphones_slider_, &QSlider::sliderMoved, this, [this](int value)
-            { UpdateHeadphoneVolumeLabel(value); });
-
-    connect(headphones_slider_, &QSlider::sliderReleased, this, [this]()
-            { headphone_volume_label_->hide(); });
-
-    connect(headphones_slider_, &QSlider::valueChanged, this, [this](int volume)
+    connect(controller.slider, &QSlider::valueChanged, this, [this, &controller](int volume)
             {
                 if (sync_enable_)
                 {
-                    QSignalBlocker bloker(mic_slider_);
-                    mic_slider_->setValue(volume);
+                    QSignalBlocker blocker(microphone_controller_.slider);
+                    microphone_controller_.slider->setValue(volume);
 
-                    if (!mic_muted_)
+                    if (!microphone_controller_.muted)
                     {
                         emit MicVolumeChanged(volume);
                     }
                 }
 
-                if(!headphones_muted_)
+                if(!controller.muted)
                 {
                     emit HeadphoneVolumeChanged(volume);
                 } });
 
-    connect(headphones_button_, &QPushButton::clicked, this, [this]()
-            { headphones_muted_ = !headphones_muted_;
-            headphones_button_->setIcon(headphones_muted_ ? icon_headphones_muted_ : icon_headphones_);
-            int volume = headphones_muted_ ? 0 : headphones_slider_->value();
+    connect(controller.button, &QPushButton::clicked, this, [this, &controller]()
+            { controller.muted = !controller.muted;
+            controller.button->setIcon(controller.muted ? controller.muted_icon : controller.icon);
+            int volume = controller.muted ? 0 : controller.slider->value();
             emit HeadphoneVolumeChanged(volume); });
-
-    volume_control_layout->addLayout(mic_volume_control_layout);
-    volume_control_layout->addLayout(headphones_volume_control_layout);
-
-    toolbar_layout->addLayout(volume_control_layout);
 }
 
-void ToolBar::UpdateMicVolumeLabel(int value)
+void ToolBar::InitializeSliderLabelConnections(VolumeController &controller)
 {
+    auto slider = controller.slider;
+
+    connect(slider, &QSlider::sliderPressed, this, [this, &controller]()
+            { UpdateVolumeLabel(controller.slider->value(), controller); });
+
+    connect(slider, &QSlider::sliderMoved, this, [this, &controller](int value)
+            { UpdateVolumeLabel(value, controller); });
+
+    connect(slider, &QSlider::sliderReleased, this, [&controller]()
+            { controller.label->hide(); });
+}
+
+void ToolBar::UpdateVolumeLabel(int value, VolumeController &controller)
+{
+    auto slider = controller.slider;
+    auto label = controller.label;
+
     QStyleOptionSlider slider_opt;
-    slider_opt.initFrom(mic_slider_);
-    slider_opt.minimum = mic_slider_->minimum();
-    slider_opt.maximum = mic_slider_->maximum();
+    slider_opt.initFrom(slider);
+    slider_opt.minimum = slider->minimum();
+    slider_opt.maximum = slider->maximum();
     slider_opt.sliderPosition = value;
     slider_opt.sliderValue = value;
 
-    QRect handle_rect = mic_slider_->style()->subControlRect(
+    QRect handle_rect = slider->style()->subControlRect(
         QStyle::CC_Slider,
         &slider_opt,
         QStyle::SC_SliderHandle,
-        mic_slider_);
+        slider);
 
-    QPoint pos = mic_slider_->mapToParent(handle_rect.center());
-    pos.setY(pos.y() - 20);
+    QPoint pos = slider->mapToParent(handle_rect.center());
+    pos.setY(pos.y() - label->height());
 
-    mic_volume_label_->move(pos.x() - mic_volume_label_->width() / 2, pos.y());
-    mic_volume_label_->setText(QString::number(value));
-    mic_volume_label_->show();
-}
-
-void ToolBar::UpdateHeadphoneVolumeLabel(int value)
-{
-    QStyleOptionSlider slider_opt;
-    slider_opt.initFrom(headphones_slider_);
-    slider_opt.minimum = headphones_slider_->minimum();
-    slider_opt.maximum = headphones_slider_->maximum();
-    slider_opt.sliderPosition = value;
-    slider_opt.sliderValue = value;
-
-    QRect handle_rect = headphones_slider_->style()->subControlRect(
-        QStyle::CC_Slider,
-        &slider_opt,
-        QStyle::SC_SliderHandle,
-        headphones_slider_);
-
-    QPoint pos = headphones_slider_->mapToParent(handle_rect.center());
-    pos.setY(pos.y() - headphones_slider_->height());
-
-    headphone_volume_label_->move(pos.x() - headphone_volume_label_->width() / 2, pos.y());
-    headphone_volume_label_->setText(QString::number(value));
-    headphone_volume_label_->show();
+    label->move(pos.x() - label->width() / 2, pos.y());
+    label->setText(QString::number(value));
+    label->show();
 }

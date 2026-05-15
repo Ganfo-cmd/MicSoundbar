@@ -6,6 +6,7 @@
 #include <QSlider>
 #include <QLineEdit>
 #include <QCheckBox>
+#include <QVBoxLayout>
 #include <QPushButton>
 
 class ToolBar : public QWidget
@@ -27,6 +28,18 @@ signals:
     void DownArrowClicked();
 
 private:
+    struct VolumeController
+    {
+        QSlider *slider = nullptr;
+        QLabel *label = nullptr;
+        QPushButton *button = nullptr;
+
+        QIcon icon;
+        QIcon muted_icon;
+
+        bool muted = false;
+    };
+
     QLineEdit *search_line_edit_ = nullptr;
     QPushButton *up_button_ = nullptr;
     QPushButton *down_button_ = nullptr;
@@ -36,20 +49,21 @@ private:
     bool sync_enable_ = false;
     QCheckBox *sync_volume_checkbox_ = nullptr;
 
-    QSlider *mic_slider_ = nullptr;
-    QLabel *mic_volume_label_ = nullptr;
-    QPushButton *mic_button_ = nullptr;
-    QIcon icon_microphone_;
-    QIcon icon_microphone_muted_;
-    bool mic_muted_ = false;
+    VolumeController microphone_controller_;
+    VolumeController headphones_controller_;
 
-    QSlider *headphones_slider_ = nullptr;
-    QLabel *headphone_volume_label_ = nullptr;
-    QPushButton *headphones_button_ = nullptr;
-    QIcon icon_headphones_;
-    QIcon icon_headphones_muted_;
-    bool headphones_muted_ = false;
+    void InitializeUI();
+    void InitializeAddFileButton(QHBoxLayout *toolbar_layout);
+    void InitializeSearchBar(QHBoxLayout *toolbar_layout);
+    void InitializeCheckboxes(QHBoxLayout *toolbar_layout);
+    void InitializeVolumeControllers(QHBoxLayout *toolbar_layout);
+    
+    void InitializeController(VolumeController &controller, QVBoxLayout *volume_control_layout,
+                              const QIcon &icon, const QIcon &muted_icon);
 
-    void UpdateMicVolumeLabel(int value);
-    void UpdateHeadphoneVolumeLabel(int value);
+    void InitializeSliderLabelConnections(VolumeController &controller);
+    void InitializeMicConnections();
+    void InitializeHeadphonesConnections();
+
+    void UpdateVolumeLabel(int value, VolumeController &controller);
 };
