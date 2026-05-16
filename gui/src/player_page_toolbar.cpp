@@ -40,6 +40,9 @@ void ToolBar::InitializeSearchBar(QHBoxLayout *toolbar_layout)
 
     connect(search_line_edit_, &QLineEdit::textChanged, this, &ToolBar::SearchTextChanged);
 
+    connect(search_line_edit_, &QLineEdit::editingFinished, this, [this]()
+            { search_line_edit_->clearFocus(); });
+
     up_button_ = new QPushButton(this);
     up_button_->setFixedSize(22, 22);
     up_button_->setIcon(QIcon(":/icons/up_arrow.png"));

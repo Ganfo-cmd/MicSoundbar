@@ -66,7 +66,7 @@ void PlayerPage::InitializeTableView()
     table_view_->setModel(table_model_);
 
     table_view_->setShowGrid(false);
-    table_view_->setFocusPolicy(Qt::NoFocus);
+    table_view_->setFocusPolicy(Qt::StrongFocus);
     table_view_->verticalHeader()->setVisible(false);
 
     table_view_->setStyleSheet("QHeaderView::section {font-weight: normal;}");
