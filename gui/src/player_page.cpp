@@ -296,8 +296,11 @@ bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
         return QWidget::eventFilter(obj, event);
 
     QWidget *focus_widget = QApplication::focusWidget();
-    if (focus_widget && qobject_cast<QKeySequenceEdit *>(focus_widget))
+    if (focus_widget && (qobject_cast<QKeySequenceEdit *>(focus_widget) ||
+                         qobject_cast<QLineEdit *>(focus_widget)))
+    {
         return QWidget::eventFilter(obj, event);
+    }
 
     Hotkey hk;
     hk.key = key_event->key();
