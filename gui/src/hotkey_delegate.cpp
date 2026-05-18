@@ -4,6 +4,30 @@
 #include <QLineEdit>
 #include <QKeySequenceEdit>
 
+HotkeyEdit::HotkeyEdit(QWidget *parent) : QLineEdit(parent)
+{
+    setPlaceholderText("Нажмите клавишу или комбинацию");
+}
+
+void HotkeyEdit::keyPressEvent(QKeyEvent *event)
+{
+    scan_code_ = event->nativeScanCode();
+    modifiers_ = event->modifiers();
+
+    QKeySequence seq(modifiers_ | event->key());
+    setText(seq.toString(QKeySequence::PortableText));
+}
+
+uint32_t HotkeyEdit::GetScanCode() const
+{
+    return scan_code_;
+}
+
+uint32_t HotkeyEdit::GetModifiers() const
+{
+    return modifiers_;
+}
+
 HotkeyDelegate::HotkeyDelegate(QObject *parent)
     : QStyledItemDelegate(parent)
 {
@@ -11,34 +35,24 @@ HotkeyDelegate::HotkeyDelegate(QObject *parent)
 
 QWidget *HotkeyDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &, const QModelIndex &) const
 {
-    QKeySequenceEdit *editor = new QKeySequenceEdit(parent);
-    editor->setMaximumSequenceLength(1);
-    editor->setClearButtonEnabled(true);
-
-    QTimer::singleShot(0, editor, [editor]()
-    {
-        if (auto *line_edit = editor->findChild<QLineEdit*>())
-        {
-            line_edit->setPlaceholderText(
-                "Нажмите клавишу или комбинацию");
-        }
-    });
-
-    return editor;
+    return new HotkeyEdit(parent);
 }
 
 void HotkeyDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
+    HotkeyEdit *edit = static_cast<HotkeyEdit *>(editor);
     QString text = index.model()->data(index, Qt::EditRole).toString();
-    QKeySequenceEdit *edit = static_cast<QKeySequenceEdit *>(editor);
-    edit->setKeySequence(QKeySequence(text));
+    edit->setText(text);
 }
 
 void HotkeyDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
-    QKeySequenceEdit *edit = static_cast<QKeySequenceEdit *>(editor);
-    QKeySequence seq = edit->keySequence();
-    QString portable_text = seq.toString(QKeySequence::PortableText);
+    HotkeyEdit *edit = static_cast<HotkeyEdit *>(editor);
 
-    model->setData(index, portable_text, Qt::EditRole);
+    QVariantMap hotkey;
+    hotkey["scan_code"] = edit->GetScanCode();
+    hotkey["modifiers"] = edit->GetModifiers();
+    hotkey["display_text"] = edit->text();
+
+    model->setData(index, hotkey, Qt::EditRole);
 }

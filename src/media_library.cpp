@@ -4,7 +4,7 @@
 
 void MediaLibrary::AddFile(const MediaInfo &file)
 {
-    if (!file.hotkey.empty())
+    if (!file.hotkey.IsEmpty())
     {
         size_t index = media_files_.size();
         id_by_hotkeys_[file.hotkey] = file.id;
@@ -16,7 +16,7 @@ void MediaLibrary::AddFile(const MediaInfo &file)
 
 void MediaLibrary::AddFile(MediaInfo &&file)
 {
-    if (!file.hotkey.empty())
+    if (!file.hotkey.IsEmpty())
     {
         size_t index = media_files_.size();
         id_by_hotkeys_[file.hotkey] = file.id;
@@ -34,7 +34,7 @@ void MediaLibrary::DeleteFile(size_t index)
     }
 
     MediaInfo &media = media_files_[index];
-    if (!media.hotkey.empty())
+    if (!media.hotkey.IsEmpty())
     {
         id_by_hotkeys_.erase(media.hotkey);
         index_by_id_with_hotkey_.erase(media.id);
@@ -117,7 +117,7 @@ void MediaLibrary::UpdateAvailability(bool is_available, size_t row)
 }
 
 /*Возвращает позицию предыдущего владельца горячей клавиши*/
-std::optional<size_t> MediaLibrary::ChangeHotkey(size_t index, std::string hotkey)
+std::optional<size_t> MediaLibrary::ChangeHotkey(size_t index, const Hotkey &hotkey)
 {
     std::optional<size_t> previous_owner_index;
     if (index >= media_files_.size())
@@ -127,13 +127,13 @@ std::optional<size_t> MediaLibrary::ChangeHotkey(size_t index, std::string hotke
 
     MediaInfo &info = media_files_[index];
     uint64_t id = info.id;
-    if (!info.hotkey.empty())
+    if (!info.hotkey.IsEmpty())
     {
         id_by_hotkeys_.erase(info.hotkey);
         index_by_id_with_hotkey_.erase(id);
     }
 
-    if (!hotkey.empty())
+    if (!hotkey.IsEmpty())
     {
         auto it = id_by_hotkeys_.find(hotkey);
         if (it != id_by_hotkeys_.end())
@@ -144,7 +144,7 @@ std::optional<size_t> MediaLibrary::ChangeHotkey(size_t index, std::string hotke
             if (it_index != index_by_id_with_hotkey_.end())
             {
                 previous_owner_index = it_index->second;
-                media_files_[it_index->second].hotkey.clear();
+                media_files_[it_index->second].hotkey = {};
                 index_by_id_with_hotkey_.erase(it_index);
             }
 
@@ -155,7 +155,7 @@ std::optional<size_t> MediaLibrary::ChangeHotkey(size_t index, std::string hotke
         index_by_id_with_hotkey_[id] = index;
     }
 
-    info.hotkey = std::move(hotkey);
+    info.hotkey = hotkey;
     return previous_owner_index;
 }
 
@@ -179,14 +179,23 @@ void MediaLibrary::UpdateIndexMap()
     for (size_t i = 0; i < media_files_.size(); ++i)
     {
         const MediaInfo &info = media_files_[i];
-        if (!info.hotkey.empty())
+        if (!info.hotkey.IsEmpty())
         {
             index_by_id_with_hotkey_[info.id] = i;
         }
     }
 }
 
-size_t MediaLibrary::GetMediaFileIndexById(uint64_t id) const
+std::optional<size_t> MediaLibrary::GetMediaFileIndexByHotkey(const Hotkey &hotkey) const
 {
-    return index_by_id_with_hotkey_.at(id);
+    std::optional<size_t> res;
+
+    auto it = id_by_hotkeys_.find(hotkey);
+    if(it == id_by_hotkeys_.end())
+    {
+        return res;
+    }
+
+    res = index_by_id_with_hotkey_.at(it->second);
+    return res;
 }

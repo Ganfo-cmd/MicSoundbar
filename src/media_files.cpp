@@ -22,7 +22,8 @@ void MediaFileHandler::Initialize()
     }
 }
 
-std::optional<size_t> MediaFileHandler::ChangeHotkey(size_t index, std::string hotkey)
+/*Возвращает позицию предыдущего владельца горячей клавиши*/
+std::optional<size_t> MediaFileHandler::ChangeHotkey(size_t index, const Hotkey &hotkey)
 {
     return media_library_.ChangeHotkey(index, hotkey);
 }
@@ -85,7 +86,7 @@ const std::vector<MediaInfo> &MediaFileHandler::GetAllMediaInfo() const
     return media_library_.GetAllMediaInfo();
 }
 
-size_t MediaFileHandler::GetMediaFileIndexById(uint64_t id) const
+std::optional<size_t> MediaFileHandler::GetMediaFileIndexByHotkey(const Hotkey &hotkey) const
 {
-    return media_library_.GetMediaFileIndexById(id);
+    return media_library_.GetMediaFileIndexByHotkey(hotkey);
 }

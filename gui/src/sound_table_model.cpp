@@ -55,8 +55,10 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
             return QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
         }
         case ColumnHotKey:
-            QKeySequence seq(QString::fromStdString(file.hotkey));
+        {
+            QKeySequence seq(QString::fromStdString(file.hotkey.display));
             return seq.toString(QKeySequence::NativeText);
+        }
         }
     }
 
@@ -214,8 +216,14 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
 
     if (index.column() == ColumnHotKey)
     {
-        QString key = value.toString();
-        auto previous_owner = media_handler_.ChangeHotkey(index.row(), key.toStdString());
+        QVariantMap map = value.toMap();
+
+        Hotkey hk;
+        hk.scan_code = map["scan_code"].toUInt();
+        hk.modifiers = map["modifiers"].toUInt();
+        hk.display = map["display_text"].toString().toStdString();
+
+        auto previous_owner = media_handler_.ChangeHotkey(index.row(), hk);
         if (previous_owner)
         {
             QModelIndex prev_index = this->index(static_cast<int>(*previous_owner), ColumnHotKey);
@@ -225,7 +233,6 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
         const MediaInfo &media_file = media_handler_.GetMediaFileInfo(index.row());
 
         emit dataChanged(index, index, {Qt::DisplayRole});
-        emit HotkeyChange(media_file.id, key);
         return true;
     }
 
@@ -390,11 +397,6 @@ void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path>
 void SoundTableModel::SaveData()
 {
     media_handler_.SaveData();
-}
-
-size_t SoundTableModel::GetMediaFileIndexById(uint64_t id) const
-{
-    return media_handler_.GetMediaFileIndexById(id);
 }
 
 void SoundTableModel::SetSearchText(const QString &text)

@@ -1,6 +1,25 @@
 #pragma once
 
+#include <QLineEdit>
+#include <QKeyEvent>
 #include <QStyledItemDelegate>
+
+class HotkeyEdit : public QLineEdit
+{
+    Q_OBJECT
+public:
+    HotkeyEdit(QWidget *parent = nullptr);
+
+    uint32_t GetScanCode() const;
+    uint32_t GetModifiers() const;
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+
+private:
+    uint32_t scan_code_;
+    uint32_t modifiers_;
+};
 
 class HotkeyDelegate : public QStyledItemDelegate
 {

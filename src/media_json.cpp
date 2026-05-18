@@ -52,7 +52,9 @@ bool MediaJSON::Save(const std::vector<MediaInfo> &media_list, uint64_t next_id)
             file << "      \"name\": \"" << EscapeJsonString(media.name) << "\",\n";
             file << "      \"path\": \"" << EscapeJsonString(media.path) << "\",\n";
             file << "      \"duration\": " << media.duration << ",\n";
-            file << "      \"hotkey\": \"" << media.hotkey << "\"\n";
+            file << "      \"hotkey_scan_code\": " << media.hotkey.scan_code << ",\n";
+            file << "      \"hotkey_modifiers\": " << media.hotkey.modifiers << ",\n";
+            file << "      \"hotkey_display\": \"" << media.hotkey.display << "\"\n";
             file << "    }";
 
             if (i + 1 < media_list.size())
@@ -176,12 +178,20 @@ MediaInfo MediaJSON::LoadMediaInfo(std::ifstream &file) const
             {
                 media_info.duration = LoadDuration(file);
             }
-            else if (key == "hotkey")
+            else if (key == "hotkey_scan_code")
+            {
+                media_info.hotkey.scan_code = LoadDuration(file);
+            }
+            else if (key == "hotkey_modifiers")
+            {
+                media_info.hotkey.modifiers = LoadDuration(file);
+            }
+            else if (key == "hotkey_display")
             {
                 file >> std::ws;
                 if (!file.get(ch) || ch != '"')
                     return {};
-                media_info.hotkey = LoadString(file);
+                media_info.hotkey.display = LoadString(file);
             }
         }
     }

@@ -31,31 +31,8 @@ private slots:
     void SearchDown();
 
     void ShowContexMenu(const QPoint &pos);
-    void ChangeHotkey(uint64_t id, const QString &key);
 
 private:
-    struct Hotkey
-    {
-        int key;
-        Qt::KeyboardModifiers mods;
-
-        bool operator==(const Hotkey &other) const
-        {
-            return key == other.key && mods == other.mods;
-        }
-    };
-
-    struct HotkeyHash
-    {
-        size_t operator()(const Hotkey &hk) const
-        {
-            size_t h1 = std::hash<int>()(hk.key);
-            size_t h2 = std::hash<int>()(int(hk.mods));
-
-            return h1 ^ (h2 << 7);
-        }
-    };
-
     void InitializeUI();
     void InitializeToolBar(QVBoxLayout *main_layout);
     void InitializeTable(QVBoxLayout *main_layout);
@@ -63,18 +40,12 @@ private:
     void InitializeDelegates();
     void InitializeShortcuts();
     void InitializeConnections();
-    void LoadHotkeys();
 
     void PlayRow(int row);
     void SelectRow(int row);
 
-    void RegisterHotkey(uint64_t id, const QKeySequence &seq);
-    void RemoveHotkey(uint64_t id);
-
     AudioInterfacePlayer &player_;
     InterfaceMediaFileHandler &media_handler_;
-    std::unordered_map<uint64_t, Hotkey> id_to_hotkey_;
-    std::unordered_map<Hotkey, uint64_t, HotkeyHash> hotkey_to_id_;
 
     ToolBar *toolbar_widget_ = nullptr;
     QTableView *table_view_ = nullptr;

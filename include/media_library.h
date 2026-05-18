@@ -18,17 +18,29 @@ public:
     void MoveFile(size_t from, size_t to);
     void Sort(SortField field, SortOrder order);
     void UpdateAvailability(bool is_available, size_t row);
-    std::optional<size_t> ChangeHotkey(size_t index, std::string hotkey);
+    std::optional<size_t> ChangeHotkey(size_t index, const Hotkey &hotkey);
+
+    size_t Size() const;
 
     const MediaInfo &GetMediaFileInfo(size_t index) const;
     const std::vector<MediaInfo> &GetAllMediaInfo() const;
-    size_t Size() const;
-    size_t GetMediaFileIndexById(uint64_t id) const;
+    std::optional<size_t> GetMediaFileIndexByHotkey(const Hotkey &hotkey) const;
 
 private:
+    struct HotkeyHash
+    {
+        size_t operator()(const Hotkey &hk) const
+        {
+            size_t h1 = std::hash<uint32_t>()(hk.scan_code);
+            size_t h2 = std::hash<uint32_t>()(hk.modifiers);
+
+            return h1 ^ (h2 << 7);
+        }
+    };
+
     std::vector<MediaInfo> media_files_;
     std::unordered_map<uint64_t, size_t> index_by_id_with_hotkey_;
-    std::unordered_map<std::string, uint64_t> id_by_hotkeys_;
+    std::unordered_map<Hotkey, uint64_t, HotkeyHash> id_by_hotkeys_;
 
     void UpdateIndexMap();
 };

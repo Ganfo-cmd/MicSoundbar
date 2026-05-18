@@ -15,7 +15,6 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     : QWidget(parent), player_(player), media_handler_(media_handler)
 {
     InitializeUI();
-    LoadHotkeys();
 }
 
 void PlayerPage::InitializeUI()
@@ -131,28 +130,6 @@ void PlayerPage::InitializeConnections()
                 { 
                     table_view_->edit(index);
                 } });
-
-    connect(table_model_, &SoundTableModel::HotkeyChange, this, [this](uint64_t id, QKeySequence key)
-            {
-                if(key.isEmpty())
-                {
-                    RemoveHotkey(id);
-                }
-                else
-                {
-                    RegisterHotkey(id, key);
-                } });
-}
-
-void PlayerPage::LoadHotkeys()
-{
-    for (const auto &info : media_handler_.GetAllMediaInfo())
-    {
-        if (!info.hotkey.empty())
-        {
-            ChangeHotkey(info.id, QString::fromStdString(info.hotkey));
-        }
-    }
 }
 
 void PlayerPage::PlayRow(int row)
@@ -257,35 +234,6 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
     }
 }
 
-void PlayerPage::RegisterHotkey(uint64_t id, const QKeySequence &seq)
-{
-    if (seq.count() != 1)
-    {
-        return;
-    }
-
-    QKeyCombination combo = seq[0];
-
-    Hotkey hk;
-    hk.key = combo.key();
-    hk.mods = combo.keyboardModifiers();
-
-    hotkey_to_id_[hk] = id;
-    id_to_hotkey_[id] = hk;
-}
-
-void PlayerPage::RemoveHotkey(uint64_t id)
-{
-    auto it = id_to_hotkey_.find(id);
-    if (it == id_to_hotkey_.end())
-    {
-        return;
-    }
-
-    hotkey_to_id_.erase(it->second);
-    id_to_hotkey_.erase(it);
-}
-
 bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() != QEvent::KeyPress)
@@ -303,30 +251,17 @@ bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
     }
 
     Hotkey hk;
-    hk.key = key_event->key();
-    hk.mods = key_event->modifiers();
+    hk.scan_code = static_cast<uint32_t>(key_event->nativeScanCode());
+    hk.modifiers = static_cast<uint32_t>(key_event->modifiers());
 
-    auto it = hotkey_to_id_.find(hk);
-    if (it == hotkey_to_id_.end())
+    std::optional<size_t> index = media_handler_.GetMediaFileIndexByHotkey(hk);
+    if (!index)
     {
         return QWidget::eventFilter(obj, event);
     }
 
-    uint64_t id = it->second;
-    auto row = table_model_->GetMediaFileIndexById(id);
+    int row = static_cast<int>(index.value());
     PlayRow(row);
 
     return true;
-}
-
-void PlayerPage::ChangeHotkey(uint64_t id, const QString &key)
-{
-    RemoveHotkey(id);
-
-    if (key.isEmpty())
-    {
-        return;
-    }
-
-    RegisterHotkey(id, QKeySequence(key));
 }
