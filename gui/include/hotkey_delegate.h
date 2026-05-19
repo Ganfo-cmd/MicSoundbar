@@ -4,6 +4,12 @@
 #include <QKeyEvent>
 #include <QStyledItemDelegate>
 
+static bool IsForbiddenKey(int key);
+
+static bool IsModifierKey(int key);
+
+static QString HotkeyToQString(uint32_t scan_code, uint32_t modifiers);
+
 class HotkeyEdit : public QLineEdit
 {
     Q_OBJECT
