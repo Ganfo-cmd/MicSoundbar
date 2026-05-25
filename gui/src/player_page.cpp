@@ -15,6 +15,7 @@ PlayerPage::PlayerPage(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
     : QWidget(parent), player_(player), media_handler_(media_handler)
 {
     InitializeUI();
+    LoadGlobalHotkeys();
 }
 
 void PlayerPage::InitializeUI()
@@ -123,6 +124,17 @@ void PlayerPage::InitializeConnections()
 
     connect(toolbar_widget_, &ToolBar::SearchTextChanged, table_model_, &SoundTableModel::SetSearchText);
 
+    connect(toolbar_widget_, &ToolBar::GlobalHotkeyEnable, this, [this](bool enable)
+            { global_hotkey_enable_ = enable; 
+            if(global_hotkey_enable_)
+            {
+                LoadGlobalHotkeys();
+            }
+            else
+            {
+                UnregisterAllGlobalHotkeys();
+            } });
+
     connect(table_view_, &QTableView::doubleClicked,
             this, [this](const QModelIndex &index)
             {
@@ -130,6 +142,20 @@ void PlayerPage::InitializeConnections()
                 { 
                     table_view_->edit(index);
                 } });
+
+    connect(table_model_, &SoundTableModel::AddGlobalHotkey, this, [this](const Hotkey &hotkey, int hotkey_id)
+            { RegisterGlobalHotkey(hotkey, hotkey_id); });
+
+    connect(table_model_, &SoundTableModel::RemoveGlobalHotkey, this, [this](int hotkey_id)
+            { UnregisterGlobalHotkey(hotkey_id); });
+}
+
+void PlayerPage::LoadGlobalHotkeys()
+{
+    for (const auto &[hotkey, hotkey_id] : media_handler_.GetGlobalHotkeys())
+    {
+        RegisterGlobalHotkey(hotkey, hotkey_id);
+    }
 }
 
 void PlayerPage::PlayRow(int row)
@@ -236,7 +262,7 @@ void PlayerPage::ShowContexMenu(const QPoint &pos)
 
 bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
 {
-    if (event->type() != QEvent::KeyPress)
+    if (global_hotkey_enable_ || event->type() != QEvent::KeyPress)
         return QWidget::eventFilter(obj, event);
 
     QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
@@ -264,4 +290,60 @@ bool PlayerPage::eventFilter(QObject *obj, QEvent *event)
     PlayRow(row);
 
     return true;
+}
+
+bool PlayerPage::nativeEvent(const QByteArray &eventType,
+                             void *message,
+                             qintptr *result)
+{
+    MSG *msg = static_cast<MSG *>(message);
+    if (msg->message == WM_HOTKEY)
+    {
+        int row = media_handler_.GetMediaFileIndexByGlobalHotkeyId(msg->wParam);
+        PlayRow(row);
+        return true;
+    }
+
+    return QWidget::nativeEvent(eventType, message, result);
+}
+
+void PlayerPage::RegisterGlobalHotkey(const Hotkey &hotkey, int hotkey_id)
+{
+    if (!global_hotkey_enable_)
+        return;
+
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    uint32_t modifiers = hotkey.modifiers;
+
+    UINT mods = 0;
+    if (modifiers & Qt::ControlModifier)
+        mods |= MOD_CONTROL;
+
+    if (modifiers & Qt::AltModifier)
+        mods |= MOD_ALT;
+
+    if (modifiers & Qt::ShiftModifier)
+        mods |= MOD_SHIFT;
+
+    UINT vk = MapVirtualKey(hotkey.scan_code, MAPVK_VSC_TO_VK);
+    BOOL ok = RegisterHotKey(hwnd, hotkey_id, mods, vk);
+
+    if (!ok)
+    {
+        qDebug() << "RegisterHotKey failed:" << GetLastError();
+    }
+}
+
+void PlayerPage::UnregisterGlobalHotkey(int hotkey_id)
+{
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    UnregisterHotKey(hwnd, hotkey_id);
+}
+
+void PlayerPage::UnregisterAllGlobalHotkeys()
+{
+    for (const auto &[hotkey, hotkey_id] : media_handler_.GetGlobalHotkeys())
+    {
+        UnregisterGlobalHotkey(hotkey_id);
+    }
 }

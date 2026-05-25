@@ -223,14 +223,28 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
         hk.modifiers = map["modifiers"].toUInt();
         hk.display = map["display_text"].toString().toStdString();
 
+        const MediaInfo &media_file = media_handler_.GetMediaFileInfo(index.row());
+        if (!media_file.hotkey.IsEmpty())
+        {
+            int hotkey_id = media_handler_.GetGlobalHotkeyIdByFileId(media_file.id);
+            emit RemoveGlobalHotkey(hotkey_id);
+        }
+
         auto previous_owner = media_handler_.ChangeHotkey(index.row(), hk);
         if (previous_owner)
         {
-            QModelIndex prev_index = this->index(static_cast<int>(*previous_owner), ColumnHotKey);
+            int remove_hotkey_id = previous_owner.value().prev_hotkey_id;
+            emit RemoveGlobalHotkey(remove_hotkey_id);
+
+            QModelIndex prev_index = this->index(static_cast<int>(previous_owner.value().previous_owner_index), ColumnHotKey);
             emit dataChanged(prev_index, prev_index, {Qt::DisplayRole});
         }
 
-        const MediaInfo &media_file = media_handler_.GetMediaFileInfo(index.row());
+        if (!hk.IsEmpty())
+        {
+            int next_hotkey_id = media_handler_.GetLastHotkeyId();
+            emit AddGlobalHotkey(hk, next_hotkey_id);
+        }
 
         emit dataChanged(index, index, {Qt::DisplayRole});
         return true;
@@ -366,6 +380,13 @@ void SoundTableModel::DeleteFile(int row)
     if (!IsValidRow(row))
     {
         return;
+    }
+
+    const MediaInfo &media_file = media_handler_.GetMediaFileInfo(row);
+    if (!media_file.hotkey.IsEmpty())
+    {
+        int hotkey_id = media_handler_.GetGlobalHotkeyIdByFileId(media_file.id);
+        emit RemoveGlobalHotkey(hotkey_id);
     }
 
     beginRemoveRows(QModelIndex(), row, row);

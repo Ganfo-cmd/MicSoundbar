@@ -74,6 +74,11 @@ void ToolBar::InitializeSearchBar(QHBoxLayout *toolbar_layout)
 void ToolBar::InitializeCheckboxes(QHBoxLayout *toolbar_layout)
 {
     QVBoxLayout *sync_and_sort_checkbox = new QVBoxLayout;
+    global_hotkey_checkbox_ = new QCheckBox("Глобальные горячие клавиши", this);
+    global_hotkey_checkbox_->setChecked(true);
+    sync_and_sort_checkbox->addWidget(global_hotkey_checkbox_);
+
+    connect(global_hotkey_checkbox_, &QCheckBox::toggled, this, &ToolBar::GlobalHotkeyEnable);
 
     sync_volume_checkbox_ = new QCheckBox("Синхронизация звука", this);
     sync_volume_checkbox_->setChecked(false);

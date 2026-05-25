@@ -11,8 +11,8 @@ class InterfaceMediaFileHandler
 public:
     virtual ~InterfaceMediaFileHandler() = default;
 
-    /*Возвращает позицию предыдущего владельца горячей клавиши*/
-    virtual std::optional<size_t> ChangeHotkey(size_t index, const Hotkey &hotkey) = 0;
+    /*Возвращает позицию предыдущего владельца горячей клавиши и id горячей клавиши*/
+    virtual std::optional<ChangeHotkeyResult> ChangeHotkey(size_t index, const Hotkey &hotkey) = 0;
     virtual void RenameFile(size_t index, std::string new_name) = 0;
     virtual void MoveFile(size_t from, size_t to) = 0;
     virtual void Sort(SortField field, SortOrder order) = 0;
@@ -26,4 +26,9 @@ public:
     virtual const MediaInfo &GetMediaFileInfo(size_t index) const = 0;
     virtual const std::vector<MediaInfo> &GetAllMediaInfo() const = 0;
     virtual std::optional<size_t> GetMediaFileIndexByHotkey(const Hotkey &hotkey) const = 0;
+
+    virtual std::vector<std::pair<Hotkey, int>> GetGlobalHotkeys() const = 0;
+    virtual int GetGlobalHotkeyIdByFileId(uint64_t file_id) const = 0;
+    virtual size_t GetMediaFileIndexByGlobalHotkeyId(int hotkey_id) const = 0;
+    virtual int GetLastHotkeyId() const = 0;
 };

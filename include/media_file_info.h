@@ -40,3 +40,9 @@ enum class SortOrder
     Ascending,
     Descending
 };
+
+struct ChangeHotkeyResult
+{
+    size_t previous_owner_index;
+    int prev_hotkey_id = -1;
+};

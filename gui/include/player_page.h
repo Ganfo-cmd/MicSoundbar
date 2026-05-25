@@ -1,6 +1,10 @@
 #ifndef PLAYER_PAGE_H
 #define PLAYER_PAGE_H
 
+#include <windows.h>
+#undef DeleteFile
+#undef PlaySound
+
 #include "interface_player.h"
 #include "interface_media_handler.h"
 #include "sound_table_model.h"
@@ -22,6 +26,7 @@ public:
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
+    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
 
 private slots:
     void ChangeMicVolume(int volume);
@@ -41,8 +46,16 @@ private:
     void InitializeShortcuts();
     void InitializeConnections();
 
+    void LoadGlobalHotkeys();
+
     void PlayRow(int row);
     void SelectRow(int row);
+
+    void RegisterGlobalHotkey(const Hotkey &hotkey, int hotkey_id);
+    void UnregisterGlobalHotkey(int hotkey_id);
+    void UnregisterAllGlobalHotkeys();
+
+    bool global_hotkey_enable_ = true;
 
     AudioInterfacePlayer &player_;
     InterfaceMediaFileHandler &media_handler_;

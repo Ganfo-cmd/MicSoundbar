@@ -14,7 +14,7 @@ public:
 
     void Initialize();
 
-    std::optional<size_t> ChangeHotkey(size_t index, const Hotkey &hotkey) override;
+    std::optional<ChangeHotkeyResult> ChangeHotkey(size_t index, const Hotkey &hotkey) override;
     void RenameFile(size_t index, std::string new_name) override;
     void MoveFile(size_t from, size_t to) override;
     void Sort(SortField field, SortOrder order) override;
@@ -28,6 +28,11 @@ public:
     const MediaInfo &GetMediaFileInfo(size_t index) const override;
     const std::vector<MediaInfo> &GetAllMediaInfo() const override;
     std::optional<size_t> GetMediaFileIndexByHotkey(const Hotkey &hotkey) const override;
+
+    std::vector<std::pair<Hotkey, int>> GetGlobalHotkeys() const override;
+    int GetGlobalHotkeyIdByFileId(uint64_t file_id) const override;
+    size_t GetMediaFileIndexByGlobalHotkeyId(int hotkey_id) const override;
+    int GetLastHotkeyId() const override;
 
 private:
     uint64_t next_id_ = 1;

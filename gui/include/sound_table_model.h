@@ -55,6 +55,10 @@ public:
 public slots:
     void SetSearchText(const QString &text);
 
+signals:
+    void AddGlobalHotkey(const Hotkey& hotkey, int hotkey_id);
+    void RemoveGlobalHotkey(int hotkey_id);
+
 private:
     QTimer autosave_timer_;
     QString search_text_;
