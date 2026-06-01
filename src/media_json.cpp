@@ -54,7 +54,7 @@ bool MediaJSON::Save(const std::vector<MediaInfo> &media_list, uint64_t next_id)
             file << "      \"duration\": " << media.duration << ",\n";
             file << "      \"hotkey_scan_code\": " << media.hotkey.scan_code << ",\n";
             file << "      \"hotkey_modifiers\": " << media.hotkey.modifiers << ",\n";
-            file << "      \"hotkey_display\": \"" << media.hotkey.display << "\"\n";
+            file << "      \"hotkey_display\": \"" << EscapeJsonString(media.hotkey.display) << "\"\n";
             file << "    }";
 
             if (i + 1 < media_list.size())
