@@ -218,6 +218,11 @@ void ToolBar::InitializeSliderLabelConnections(VolumeController &controller)
             { controller.label->hide(); });
 }
 
+void ToolBar::SetGlobalHotkeyEnable(bool enable)
+{
+    global_hotkey_checkbox_->setChecked(enable);
+}
+
 void ToolBar::UpdateVolumeLabel(int value, VolumeController &controller)
 {
     auto slider = controller.slider;

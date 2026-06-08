@@ -16,6 +16,8 @@ public:
     explicit ToolBar(QWidget *parent = nullptr);
     ~ToolBar() = default;
 
+    void SetGlobalHotkeyEnable(bool enable);
+
 signals:
     void MicVolumeChanged(int volume);
     void HeadphoneVolumeChanged(int volume);

@@ -115,6 +115,11 @@ void PlayerPage::InitializeShortcuts()
                 {
                     table_view_->edit(index);
                 } });
+
+    QShortcut *disable_global_hotkey = new QShortcut(QKeySequence(Qt::Key_F1), table_view_);
+
+    connect(disable_global_hotkey, &QShortcut::activated, this, [this]()
+            { toolbar_widget_->SetGlobalHotkeyEnable(!global_hotkey_enable_); });
 }
 
 void PlayerPage::InitializeConnections()
@@ -152,6 +157,8 @@ void PlayerPage::InitializeConnections()
 
 void PlayerPage::LoadGlobalHotkeys()
 {
+    RegisterServiceGlobalHotkeys();
+
     for (const auto &[hotkey, hotkey_id] : media_handler_.GetGlobalHotkeys())
     {
         RegisterGlobalHotkey(hotkey, hotkey_id);
@@ -299,12 +306,31 @@ bool PlayerPage::nativeEvent(const QByteArray &eventType,
     MSG *msg = static_cast<MSG *>(message);
     if (msg->message == WM_HOTKEY)
     {
-        int row = media_handler_.GetMediaFileIndexByGlobalHotkeyId(msg->wParam);
-        PlayRow(row);
-        return true;
+        switch (msg->wParam)
+        {
+        case 1000: // вкл/выкл глобальных клавиш
+            toolbar_widget_->SetGlobalHotkeyEnable(!global_hotkey_enable_);
+            return 0;
+        default:
+            int row = media_handler_.GetMediaFileIndexByGlobalHotkeyId(msg->wParam);
+            PlayRow(row);
+            return true;
+        }
     }
 
     return QWidget::nativeEvent(eventType, message, result);
+}
+
+void PlayerPage::RegisterServiceGlobalHotkeys()
+{
+    /*пока что только одна служебная глобальная горячая клавиша*/
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    RegisterHotKey(hwnd, global_hotkey_enable_id, 0, global_hotkey_enable_vk);
+}
+
+void PlayerPage::UnregisterServiceGlobalHotkeys()
+{
+    UnregisterGlobalHotkey(global_hotkey_enable_id);
 }
 
 void PlayerPage::RegisterGlobalHotkey(const Hotkey &hotkey, int hotkey_id)

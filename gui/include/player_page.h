@@ -51,11 +51,15 @@ private:
     void PlayRow(int row);
     void SelectRow(int row);
 
+    void RegisterServiceGlobalHotkeys();
+    void UnregisterServiceGlobalHotkeys();
     void RegisterGlobalHotkey(const Hotkey &hotkey, int hotkey_id);
     void UnregisterGlobalHotkey(int hotkey_id);
     void UnregisterAllGlobalHotkeys();
 
     bool global_hotkey_enable_ = true;
+    int global_hotkey_enable_id = 1000;
+    UINT global_hotkey_enable_vk = VK_F1;
 
     AudioInterfacePlayer &player_;
     InterfaceMediaFileHandler &media_handler_;
