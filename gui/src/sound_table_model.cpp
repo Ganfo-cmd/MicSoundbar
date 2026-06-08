@@ -56,8 +56,7 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         }
         case ColumnHotKey:
         {
-            QKeySequence seq(QString::fromStdString(file.hotkey.display));
-            return seq.toString(QKeySequence::NativeText);
+            return QString::fromStdString(file.hotkey.display);
         }
         }
     }
