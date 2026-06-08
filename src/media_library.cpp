@@ -89,18 +89,47 @@ void MediaLibrary::Sort(SortField field, SortOrder order)
     std::sort(media_files_.begin(), media_files_.end(),
               [field, order](const MediaInfo &left, const MediaInfo &right)
               {
-                bool less = false;
-                switch (field)
-                {
-                case SortField::Name:
-                    less = left.name < right.name;
-                    break;
-                case SortField::Duration:
-                    less = left.duration < right.duration;
-                    break;
-                }
+                  bool less = false;
+                  switch (field)
+                  {
+                  case SortField::Name:
+                  {
+                      return (order == SortOrder::Ascending)
+                                 ? left.name < right.name
+                                 : left.name > right.name;
+                  }
+                  case SortField::Duration:
+                  {
+                      return (order == SortOrder::Ascending)
+                                 ? left.duration < right.duration
+                                 : left.duration > right.duration;
+                  }
+                  case SortField::Hotkey:
+                  {
+                      bool left_empty = left.hotkey.IsEmpty();
+                      bool right_empty = right.hotkey.IsEmpty();
 
-                return order == SortOrder::Ascending ? less : !less; });
+                      if (left_empty != right_empty)
+                          return !left_empty;
+
+                      uint32_t left_scan_code = left.hotkey.scan_code;
+                      uint32_t right_scan_code = right.hotkey.scan_code;
+
+                      if (left_scan_code != right_scan_code)
+                      {
+                          return (order == SortOrder::Ascending)
+                                     ? left_scan_code < right_scan_code
+                                     : left_scan_code > right_scan_code;
+                      }
+
+                      return (order == SortOrder::Ascending)
+                                 ? left.hotkey.modifiers < right.hotkey.modifiers
+                                 : left.hotkey.modifiers > right.hotkey.modifiers;
+                  }
+                  }
+
+                  return false;
+              });
 
     UpdateIndexMap();
 }

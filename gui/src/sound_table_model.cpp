@@ -307,6 +307,9 @@ void SoundTableModel::sort(int column, Qt::SortOrder order)
     case ColumnDuration:
         field = SortField::Duration;
         break;
+    case ColumnHotKey:
+        field = SortField::Hotkey;
+        break;
     default:
         return;
     }

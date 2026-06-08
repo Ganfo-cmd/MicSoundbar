@@ -32,7 +32,8 @@ struct MediaInfo
 enum class SortField
 {
     Name,
-    Duration
+    Duration,
+    Hotkey
 };
 
 enum class SortOrder
