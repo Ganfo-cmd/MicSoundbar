@@ -23,8 +23,8 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
 
 private:
-    uint32_t scan_code_;
-    uint32_t modifiers_;
+    uint32_t scan_code_ = 0;
+    uint32_t modifiers_ = 0;
 };
 
 class HotkeyDelegate : public QStyledItemDelegate
