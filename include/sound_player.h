@@ -17,7 +17,11 @@ public:
     void Stop() override;
     void SetVBVolume(float volume_level) override;
     void SetOutVolume(float volume_level) override;
-    bool IsPlaying() const override; /*заглушка*/
+    void SetPosition(double seconds) override;
+    bool IsPlaying() const override;
+
+    double GetDuration() const override;
+    double GetCurrentPosition() const override;
 
 private:
     int channels_ = 0;
@@ -30,6 +34,10 @@ private:
     float output_volume_ = 0.1f;
     mutable std::mutex vb_volume_mutex_;
     mutable std::mutex out_volume_mutex_;
+
+    double duration_ = 0.0;
+    mutable std::mutex vb_decoder_mutex_;
+    mutable std::mutex output_decoder_mutex_;
 
     void StreamInitialization(const char *file_path);
 

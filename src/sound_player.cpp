@@ -87,9 +87,28 @@ void SoundPlayer::SetOutVolume(float volume_level)
     output_volume_ = volume_level;
 }
 
+void SoundPlayer::SetPosition(double seconds)
+{
+    if (vb_decoder_ == nullptr || output_decoder_ == nullptr)
+        return;
+
+    {
+        std::lock_guard lock(vb_decoder_mutex_);
+        vb_decoder_->SetPosition(seconds);
+    }
+
+    {
+        std::lock_guard lock(output_decoder_mutex_);
+        output_decoder_->SetPosition(seconds);
+    }
+}
+
 bool SoundPlayer::IsPlaying() const
 {
-    return true; // заглушка
+    if (output_stream_ == nullptr)
+        return false;
+
+    return Pa_IsStreamActive(output_stream_) == 1;
 }
 
 void SoundPlayer::StreamInitialization(const char *file_path)
@@ -103,6 +122,7 @@ void SoundPlayer::StreamInitialization(const char *file_path)
         vb_decoder_->OpenFile(file_path);
         vb_decoder_->GetFormat(rate, channels);
         vb_decoder_->SetOutputFormat(rate, channels);
+        duration_ = vb_decoder_->GetDuration();
 
         output_decoder_ = std::make_unique<MP3Decoder>();
 
@@ -178,11 +198,15 @@ int SoundPlayer::VBPaCallback(const void *inputBuffer,
     short *out = static_cast<short *>(outputBuffer);
     size_t samples_needed = framesPerBuffer * player->channels_;
 
+    int err;
     size_t bytes_read = 0;
-    int err = player->vb_decoder_->ReadFile(
-        reinterpret_cast<unsigned char *>(out),
-        samples_needed * sizeof(short),
-        bytes_read);
+    {
+        std::lock_guard lock(player->vb_decoder_mutex_);
+        err = player->vb_decoder_->ReadFile(
+            reinterpret_cast<unsigned char *>(out),
+            samples_needed * sizeof(short),
+            bytes_read);
+    }
 
     float volume;
     {
@@ -214,12 +238,15 @@ int SoundPlayer::OutputPaCallback(const void *inputBuffer,
     short *out = static_cast<short *>(outputBuffer);
     size_t samples_needed = framesPerBuffer * player->channels_;
 
+    int err;
     size_t bytes_read = 0;
-    int err = player->output_decoder_->ReadFile(
-        reinterpret_cast<unsigned char *>(out),
-        samples_needed * sizeof(short),
-        bytes_read);
-
+    {
+        std::lock_guard lock(player->output_decoder_mutex_);
+        err = player->output_decoder_->ReadFile(
+            reinterpret_cast<unsigned char *>(out),
+            samples_needed * sizeof(short),
+            bytes_read);
+    }
     float volume;
     {
         std::lock_guard<std::mutex> lock(player->out_volume_mutex_);
@@ -278,4 +305,18 @@ int SoundPlayer::GetDeviceIndex() const
     }
 
     return vb_cabel_index;
+}
+
+double SoundPlayer::GetDuration() const
+{
+    return duration_;
+}
+
+double SoundPlayer::GetCurrentPosition() const
+{
+    if (vb_decoder_ == nullptr)
+        return 0.0;
+
+    std::lock_guard lock(vb_decoder_mutex_);
+    return vb_decoder_->GetCurrentPosition();
 }

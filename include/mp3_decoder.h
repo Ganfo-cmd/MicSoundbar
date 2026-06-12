@@ -19,11 +19,16 @@ public:
 
     int ReadFile(unsigned char *buffer, size_t buffer_size, size_t &done);
 
+    static uint32_t CalculateDuration(const std::string &file_path);
+
+    void SetPosition(double seconds);
+
     size_t GetOutblockSize() const;
 
     std::string GetErrorText() const;
 
-    static uint32_t GetDuration(const std::string &file_path);
+    double GetDuration() const;
+    double GetCurrentPosition() const;
 
 private:
     int encoding_ = 0;

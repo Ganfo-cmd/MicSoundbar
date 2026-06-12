@@ -41,6 +41,7 @@ private:
     void InitializeUI();
     void InitializeToolBar(QVBoxLayout *main_layout);
     void InitializeTable(QVBoxLayout *main_layout);
+    void InitializePlayerSlider(QVBoxLayout *main_layput);
     void InitializeTableView();
     void InitializeDelegates();
     void InitializeShortcuts();
@@ -50,6 +51,7 @@ private:
 
     void PlayRow(int row);
     void SelectRow(int row);
+    void ActivateProgressSlider();
 
     void RegisterServiceGlobalHotkeys();
     void UnregisterServiceGlobalHotkeys();
@@ -67,6 +69,10 @@ private:
     ToolBar *toolbar_widget_ = nullptr;
     QTableView *table_view_ = nullptr;
     SoundTableModel *table_model_ = nullptr;
+
+    QSlider *progress_slider_ = nullptr;
+    QTimer *progress_timer_ = nullptr;
+    static constexpr int ProgressSliderScale = 1000;
 };
 
 #endif // PLAYER_PAGE_H

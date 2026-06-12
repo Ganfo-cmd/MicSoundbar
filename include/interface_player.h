@@ -9,5 +9,9 @@ public:
     virtual void Stop() = 0;
     virtual void SetVBVolume(float volume_level) = 0;
     virtual void SetOutVolume(float volume_level) = 0;
+    virtual void SetPosition(double seconds) = 0;
     virtual bool IsPlaying() const = 0;
+
+    virtual double GetDuration() const = 0;
+    virtual double GetCurrentPosition() const = 0;
 };

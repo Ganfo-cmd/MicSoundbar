@@ -72,7 +72,7 @@ std::string MP3Decoder::GetErrorText() const
     return std::string(mpg123_strerror(mpg_handler_));
 }
 
-uint32_t MP3Decoder::GetDuration(const std::string &file_path)
+uint32_t MP3Decoder::CalculateDuration(const std::string &file_path)
 {
     mpg123_handle *mh = mpg123_new(nullptr, nullptr);
     if (mh == nullptr)
@@ -106,4 +106,54 @@ uint32_t MP3Decoder::GetDuration(const std::string &file_path)
     }
 
     return samples / rate;
+}
+
+void MP3Decoder::SetPosition(double seconds)
+{
+    if (mpg_handler_ == nullptr)
+    {
+        return;
+    }
+
+    long rate = 0;
+    int channels = 0, encoding = 0;
+    mpg123_getformat(mpg_handler_, &rate, &channels, &encoding);
+
+    off_t samples = static_cast<off_t>(seconds * rate);
+
+    if (mpg123_seek(mpg_handler_, samples, SEEK_SET) < 0)
+    {
+        throw std::runtime_error("Failed to set new position. Error: "s + std::string(mpg123_strerror(mpg_handler_)));
+    }
+}
+
+double MP3Decoder::GetDuration() const
+{
+    if (mpg_handler_ == nullptr)
+    {
+        return 0.0;
+    }
+
+    long rate = 0;
+    int channels = 0, encoding = 0;
+    mpg123_getformat(mpg_handler_, &rate, &channels, &encoding);
+
+    off_t samples = mpg123_length(mpg_handler_);
+    return static_cast<double>(samples) / rate;
+}
+
+double MP3Decoder::GetCurrentPosition() const
+{
+    if (mpg_handler_ == nullptr)
+    {
+        return 0.0;
+    }
+
+    long rate = 0;
+    int channels = 0, encoding = 0;
+    mpg123_getformat(mpg_handler_, &rate, &channels, &encoding);
+
+    off_t current_pos = mpg123_tell(mpg_handler_);
+
+    return static_cast<double>(current_pos) / rate;
 }

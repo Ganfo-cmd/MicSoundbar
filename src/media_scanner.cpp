@@ -59,5 +59,5 @@ std::optional<MediaInfo> MediaScanner::ScanFile(const std::filesystem::path &fil
 
 uint32_t MediaScanner::GetMediaFileDuration(const std::string &file_path) const
 {
-    return MP3Decoder::GetDuration(file_path);
+    return MP3Decoder::CalculateDuration(file_path);
 }
