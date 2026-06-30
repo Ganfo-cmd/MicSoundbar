@@ -15,6 +15,7 @@ public:
 
     void RenameList(uint64_t list_id, std::string name);
     void AddList(uint64_t &next_list_id, std::string new_name);
+    std::vector<int> DeleteList(int list_index);
 
     void AddFiles(uint64_t list_id, std::vector<MediaInfo> &&file_list);
     void DeleteFile(uint64_t list_id, size_t index);

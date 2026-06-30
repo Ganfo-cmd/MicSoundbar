@@ -64,6 +64,11 @@ uint64_t MediaFileHandler::AddList(std::string name)
     return next_list_id_ - 1;
 }
 
+std::vector<int> MediaFileHandler::DeleteList(int list_index)
+{
+    return media_library_.DeleteList(list_index);
+}
+
 void MediaFileHandler::RenameList(uint64_t list_id, std::string name)
 {
     media_library_.RenameList(list_id, name);

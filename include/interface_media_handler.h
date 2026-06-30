@@ -21,6 +21,7 @@ public:
     virtual void SaveData() = 0;
 
     virtual uint64_t AddList(std::string name) = 0;
+    virtual std::vector<int> DeleteList(int list_index) = 0;
     virtual void RenameList(uint64_t list_id, std::string name) = 0;
     virtual void AddFilesInLibrary(uint64_t list_id, const std::vector<std::filesystem::path> &files) = 0;
 

@@ -49,6 +49,39 @@ void MediaLibrary::AddList(uint64_t &next_list_id, std::string name)
     media_lists_.push_back(std::move(list));
 }
 
+/*Возвращает вектор id горячих клавиш на удаленной странице*/
+std::vector<int> MediaLibrary::DeleteList(int list_index)
+{
+    std::vector<int> result;
+    assert(list_index < media_lists_.size());
+    const MediaList &list = media_lists_[list_index];
+
+    list_index_by_list_id_.erase(list.id);
+
+    for (const MediaInfo &media_info : list.media)
+    {
+        const Hotkey &hotkey = media_info.hotkey;
+        if (!hotkey.IsEmpty())
+        {
+            int hotkey_id = hotkey_to_id_.at(hotkey);
+            id_to_hotkey_.erase(hotkey_id);
+            hotkey_to_id_.erase(hotkey);
+            media_location_by_hotkey_.erase(hotkey);
+
+            result.push_back(hotkey_id);
+        }
+    }
+
+    media_lists_.erase(media_lists_.begin() + list_index);
+
+    for (size_t i = list_index; i < media_lists_.size(); ++i)
+    {
+        list_index_by_list_id_[media_lists_[i].id] = i;
+    }
+
+    return result;
+}
+
 void MediaLibrary::AddFiles(uint64_t list_id, std::vector<MediaInfo> &&file_list)
 {
     std::vector<MediaInfo> &media = GetMediaFiles(list_id);

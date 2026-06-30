@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QKeyEvent>
 #include <QKeySequenceEdit>
+#include <QMenu>
 
 #include <string>
 
@@ -77,6 +78,7 @@ void MainWidget::InitializeListWidget(QHBoxLayout *main_layout)
     list_widget_->setGridSize(QSize(100, 90));
     list_widget_->setUniformItemSizes(true);
     list_widget_->setItemDelegate(new ListDelegate(list_widget_));
+    list_widget_->setContextMenuPolicy(Qt::CustomContextMenu);
 
     QFont font;
     font.setPointSize(16);
@@ -92,6 +94,7 @@ void MainWidget::InitializeListWidget(QHBoxLayout *main_layout)
 
     connect(list_widget_, &QListWidget::itemChanged, this, &MainWidget::ListNameChanged);
     connect(list_widget_, &QListWidget::itemClicked, this, &MainWidget::ListItemAddClicked);
+    connect(list_widget_, &QListWidget::customContextMenuRequested, this, &MainWidget::ShowListContextMenu);
 }
 
 void MainWidget::InitializeToolBar(QVBoxLayout *table_layout)
@@ -162,6 +165,58 @@ QListWidgetItem *MainWidget::CreateList(uint64_t list_id, const QString &name)
     connect(sounds_table_widget, &SoundsTableWidget::RemoveGlobalHotkey, this, &MainWidget::UnregisterGlobalHotkey);
 
     return widget_item;
+}
+
+void MainWidget::ShowListContextMenu(const QPoint &pos)
+{
+    QListWidgetItem *item = list_widget_->itemAt(pos);
+    if (!item)
+    {
+        return;
+    }
+
+    int row = list_widget_->row(item);
+    if (row == list_widget_->count() - 1)
+    {
+        return;
+    }
+
+    QMenu menu(list_widget_);
+    QAction *rename_action = menu.addAction("Переименовать");
+    rename_action->setShortcut(QKeySequence(Qt::Key_F2));
+    QAction *delete_action = menu.addAction("Удалить");
+    delete_action->setShortcut(QKeySequence(Qt::Key_Delete));
+
+    int page_count = list_widget_->count() - 1;
+    delete_action->setEnabled(page_count > 1);
+
+    QAction *selected_action = menu.exec(list_widget_->viewport()->mapToGlobal(pos));
+    if (selected_action == rename_action)
+    {
+        list_widget_->editItem(item);
+    }
+    else if (selected_action == delete_action)
+    {
+        std::vector<int> hotkeys_id = media_handler_.DeleteList(row);
+        if (global_hotkey_enable_)
+        {
+            for (int hotkey_id : hotkeys_id)
+            {
+                UnregisterGlobalHotkey(hotkey_id);
+            }
+        }
+
+        QWidget *page = stacked_widget_->widget(row);
+        stacked_widget_->removeWidget(page);
+        delete page;
+
+        delete list_widget_->takeItem(row);
+
+        if (--page_count > 0)
+        {
+            list_widget_->setCurrentRow(std::min(row, page_count - 1));
+        }
+    }
 }
 
 void MainWidget::SetupListWidgetStyle()

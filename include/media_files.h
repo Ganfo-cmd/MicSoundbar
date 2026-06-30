@@ -23,6 +23,7 @@ public:
     void SaveData() override;
 
     uint64_t AddList(std::string name) override;
+    std::vector<int> DeleteList(int list_index) override;
     void RenameList(uint64_t list_id, std::string name) override;
     void AddFilesInLibrary(uint64_t list_id, const std::vector<std::filesystem::path> &files) override;
 

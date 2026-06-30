@@ -57,6 +57,8 @@ private slots:
 
     void GlobalHotkeyEnable(bool enable);
 
+    void ShowListContextMenu(const QPoint &pos);
+
 private:
     InterfaceMediaFileHandler &media_handler_;
 
