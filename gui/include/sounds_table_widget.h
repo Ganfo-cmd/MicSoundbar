@@ -26,6 +26,7 @@ signals:
     void StopPlaying();
     void AddGlobalHotkey(const Hotkey &hotkey, int hotkey_id);
     void RemoveGlobalHotkey(int hotkey_id);
+    void DataModified();
 
 private slots:
     void ShowContexMenu(const QPoint &pos);

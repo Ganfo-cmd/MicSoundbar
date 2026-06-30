@@ -81,6 +81,7 @@ void SoundsTableWidget::InitializeConnections()
 {
     connect(table_model_, &SoundTableModel::AddGlobalHotkey, this, &SoundsTableWidget::AddGlobalHotkey);
     connect(table_model_, &SoundTableModel::RemoveGlobalHotkey, this, &SoundsTableWidget::RemoveGlobalHotkey);
+    connect(table_model_, &SoundTableModel::DataModified, this, SoundsTableWidget::DataModified);
 }
 
 void SoundsTableWidget::AddFiles(const std::vector<std::filesystem::path> &paths)

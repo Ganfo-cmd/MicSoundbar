@@ -17,6 +17,7 @@
 #include <QHBoxLayout>
 #include <QListWidget>
 #include <QStackedWidget>
+#include <QTimer>
 
 enum ListItemType
 {
@@ -59,7 +60,11 @@ private slots:
 
     void ShowListContextMenu(const QPoint &pos);
 
+    void StartAutoSaveTimer();
+    void SaveData();
+
 private:
+    QTimer autosave_timer_;
     InterfaceMediaFileHandler &media_handler_;
 
     QString search_text_;
@@ -75,6 +80,7 @@ private:
     PlayerControlWidget *control_widget_ = nullptr;
 
     void InitializeUI(AudioInterfacePlayer &player);
+    void InitializeMainWidgetSettings();
     void InitializeListWidget(QHBoxLayout *main_layout);
     void InitializeToolBar(QVBoxLayout *table_layout);
     void InitializeControlWidget(QVBoxLayout *table_layout, AudioInterfacePlayer &player);
@@ -87,7 +93,7 @@ private:
     void LoadGlobalHotkeys();
 
     void AddNewList();
-    QListWidgetItem *CreateList(uint64_t list_id, const QString &name);    
+    QListWidgetItem *CreateList(uint64_t list_id, const QString &name);
 
     bool IsAddButton(QListWidgetItem *item) const;
 

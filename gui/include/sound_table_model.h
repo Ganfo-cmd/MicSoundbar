@@ -50,7 +50,6 @@ public:
     bool UpdateAvailability(int row);
     void DeleteFile(int row);
     void AddFilesInLibrary(const std::vector<std::filesystem::path> &files);
-    void SaveData();
 
 public slots:
     void SetSearchText(const QString &text);
@@ -58,12 +57,12 @@ public slots:
 signals:
     void AddGlobalHotkey(const Hotkey &hotkey, int hotkey_id);
     void RemoveGlobalHotkey(int hotkey_id);
+    void DataModified();
 
 private:
     uint64_t id_;
     InterfaceMediaFileHandler &media_handler_;
 
-    QTimer autosave_timer_;
     uint64_t playing_file_id_ = INVALID_ID;
 
     QString search_text_;
@@ -72,7 +71,6 @@ private:
     std::unordered_set<int> search_result_set_;
 
     bool IsValidRow(int row) const;
-    void StartAutosaveTimer();
 
     void UpdateSearchCache();
     void RebuildSearchCache();

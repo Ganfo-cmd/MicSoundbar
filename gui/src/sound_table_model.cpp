@@ -8,9 +8,6 @@
 SoundTableModel::SoundTableModel(InterfaceMediaFileHandler &media_handler, uint64_t id, QObject *parent)
     : media_handler_(media_handler), id_(id), QAbstractTableModel(parent)
 {
-    autosave_timer_.setInterval(5000);
-    autosave_timer_.setSingleShot(true);
-    connect(&autosave_timer_, &QTimer::timeout, this, &SoundTableModel::SaveData);
 }
 
 int SoundTableModel::rowCount(const QModelIndex &parent) const
@@ -191,8 +188,8 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     media_handler_.MoveFile(id_, source_row, destination_row);
     endMoveRows();
 
-    StartAutosaveTimer();
     UpdateSearchCache();
+    emit DataModified();
     return true;
 }
 
@@ -212,6 +209,7 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
     {
         media_handler_.RenameFile(id_, index.row(), value.toString().toStdString());
         emit dataChanged(index, index, {Qt::DisplayRole});
+        emit DataModified();
         return true;
     }
 
@@ -249,6 +247,7 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
         }
 
         emit dataChanged(index, index, {Qt::DisplayRole});
+        emit DataModified();
         return true;
     }
 
@@ -320,8 +319,8 @@ void SoundTableModel::sort(int column, Qt::SortOrder order)
     media_handler_.Sort(id_, field, sort_order);
     endResetModel();
 
-    StartAutosaveTimer();
     UpdateSearchCache();
+    emit DataModified();
 }
 
 const MediaInfo &SoundTableModel::GetFileInfo(int row) const
@@ -393,8 +392,8 @@ void SoundTableModel::DeleteFile(int row)
     media_handler_.DeleteFile(id_, row);
     endRemoveRows();
 
-    StartAutosaveTimer();
     UpdateSearchCache();
+    emit DataModified();
 }
 
 void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
@@ -413,13 +412,8 @@ void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path>
 
     endInsertRows();
 
-    StartAutosaveTimer();
     UpdateSearchCache();
-}
-
-void SoundTableModel::SaveData()
-{
-    media_handler_.SaveData();
+    emit DataModified();
 }
 
 void SoundTableModel::SetSearchText(const QString &text)
@@ -482,9 +476,4 @@ void SoundTableModel::ClearSearchCache()
 bool SoundTableModel::IsValidRow(int row) const
 {
     return row >= 0 && row < media_handler_.GetMediaListSize(id_);
-}
-
-void SoundTableModel::StartAutosaveTimer()
-{
-    autosave_timer_.start();
 }

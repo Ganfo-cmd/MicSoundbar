@@ -22,10 +22,7 @@ MainWidget::MainWidget(AudioInterfacePlayer &player, InterfaceMediaFileHandler &
 
 void MainWidget::InitializeUI(AudioInterfacePlayer &player)
 {
-    qApp->installEventFilter(this);
-
-    resize(1000, 650);
-    setMinimumSize(800, 630);
+    InitializeMainWidgetSettings();
 
     QHBoxLayout *main_layout = new QHBoxLayout(this);
     main_layout->setSpacing(0);
@@ -69,6 +66,18 @@ void MainWidget::LoadGlobalHotkeys()
     {
         RegisterGlobalHotkey(hotkey, hotkey_id);
     }
+}
+
+void MainWidget::InitializeMainWidgetSettings()
+{
+    qApp->installEventFilter(this);
+
+    resize(1000, 650);
+    setMinimumSize(800, 630);
+
+    autosave_timer_.setInterval(5000);
+    autosave_timer_.setSingleShot(true);
+    connect(&autosave_timer_, &QTimer::timeout, this, &MainWidget::SaveData);
 }
 
 void MainWidget::InitializeListWidget(QHBoxLayout *main_layout)
@@ -144,6 +153,8 @@ void MainWidget::AddNewList()
     list_widget_->editItem(item);
 
     stacked_widget_->setCurrentIndex(stacked_widget_->count() - 1);
+
+    StartAutoSaveTimer();
 }
 
 QListWidgetItem *MainWidget::CreateList(uint64_t list_id, const QString &name)
@@ -163,6 +174,7 @@ QListWidgetItem *MainWidget::CreateList(uint64_t list_id, const QString &name)
     connect(sounds_table_widget, &SoundsTableWidget::StopPlaying, control_widget_, &PlayerControlWidget::StopPlaying);
     connect(sounds_table_widget, &SoundsTableWidget::AddGlobalHotkey, this, &MainWidget::RegisterGlobalHotkey);
     connect(sounds_table_widget, &SoundsTableWidget::RemoveGlobalHotkey, this, &MainWidget::UnregisterGlobalHotkey);
+    connect(sounds_table_widget, &SoundsTableWidget::DataModified, this, &MainWidget::StartAutoSaveTimer);
 
     return widget_item;
 }
@@ -216,6 +228,8 @@ void MainWidget::ShowListContextMenu(const QPoint &pos)
         {
             list_widget_->setCurrentRow(std::min(row, page_count - 1));
         }
+
+        StartAutoSaveTimer();
     }
 }
 
@@ -312,6 +326,8 @@ void MainWidget::ListNameChanged(QListWidgetItem *item)
 
     uint64_t id = item->data(ListRoles::RoleId).toULongLong();
     media_handler_.RenameList(id, item->text().toStdString());
+
+    StartAutoSaveTimer();
 }
 
 void MainWidget::ListItemAddClicked(QListWidgetItem *item)
@@ -411,6 +427,16 @@ void MainWidget::GlobalHotkeyEnable(bool enable)
     {
         UnregisterAllGlobalHotkeys();
     }
+}
+
+void MainWidget::StartAutoSaveTimer()
+{
+    autosave_timer_.start();
+}
+
+void MainWidget::SaveData()
+{
+    media_handler_.SaveData();
 }
 
 SoundsTableWidget *MainWidget::GetCurrentTablePage() const
