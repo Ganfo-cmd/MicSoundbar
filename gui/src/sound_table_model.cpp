@@ -5,8 +5,8 @@
 #include <QFont>
 #include <QKeySequence>
 
-SoundTableModel::SoundTableModel(InterfaceMediaFileHandler &media_handler, QObject *parent)
-    : media_handler_(media_handler), QAbstractTableModel(parent)
+SoundTableModel::SoundTableModel(InterfaceMediaFileHandler &media_handler, uint64_t id, QObject *parent)
+    : media_handler_(media_handler), id_(id), QAbstractTableModel(parent)
 {
     autosave_timer_.setInterval(5000);
     autosave_timer_.setSingleShot(true);
@@ -20,7 +20,7 @@ int SoundTableModel::rowCount(const QModelIndex &parent) const
         return 0;
     }
 
-    return media_handler_.Size();
+    return media_handler_.GetMediaListSize(id_);
 }
 
 int SoundTableModel::columnCount(const QModelIndex &parent) const
@@ -40,7 +40,7 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
         return {};
     }
 
-    const MediaInfo &file = media_handler_.GetMediaFileInfo(index.row());
+    const MediaInfo &file = media_handler_.GetMediaFileInfo(id_, index.row());
 
     if (role == Qt::DisplayRole || role == Qt::EditRole)
     {
@@ -68,13 +68,9 @@ QVariant SoundTableModel::data(const QModelIndex &index, int role) const
             return QBrush(QColor(180, 215, 255));
         }
 
-        if (!search_text_.isEmpty())
+        if (!search_text_.isEmpty() && search_result_set_.find(index.row()) != search_result_set_.end())
         {
-            QString name = QString::fromUtf8(file.name.c_str());
-            if (name.contains(search_text_, Qt::CaseInsensitive))
-            {
-                return QBrush(QColor(182, 240, 198));
-            }
+            return QBrush(QColor(182, 240, 198));
         }
     }
 
@@ -172,6 +168,11 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     }
 
     int source_row = data->data("application/x-sound-row").toInt();
+    if (!IsValidRow(source_row))
+    {
+        return false;
+    }
+
     int destination_row = row;
     if (destination_row == -1 && parent.isValid())
     {
@@ -187,10 +188,11 @@ bool SoundTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     beginMoveRows(QModelIndex(), source_row, source_row,
                   QModelIndex(), destination_row > source_row ? destination_row + 1 : destination_row);
 
-    media_handler_.MoveFile(source_row, destination_row);
+    media_handler_.MoveFile(id_, source_row, destination_row);
     endMoveRows();
 
     StartAutosaveTimer();
+    UpdateSearchCache();
     return true;
 }
 
@@ -208,7 +210,7 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
 
     if (index.column() == ColumnName)
     {
-        media_handler_.RenameFile(index.row(), value.toString().toStdString());
+        media_handler_.RenameFile(id_, index.row(), value.toString().toStdString());
         emit dataChanged(index, index, {Qt::DisplayRole});
         return true;
     }
@@ -222,20 +224,21 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
         hk.modifiers = map["modifiers"].toUInt();
         hk.display = map["display_text"].toString().toStdString();
 
-        const MediaInfo &media_file = media_handler_.GetMediaFileInfo(index.row());
+        const MediaInfo &media_file = media_handler_.GetMediaFileInfo(id_, index.row());
         if (!media_file.hotkey.IsEmpty())
         {
-            int hotkey_id = media_handler_.GetGlobalHotkeyIdByFileId(media_file.id);
+            int hotkey_id = media_handler_.GetGlobalHotkeyIdByHotkey(media_file.hotkey);
             emit RemoveGlobalHotkey(hotkey_id);
         }
 
-        auto previous_owner = media_handler_.ChangeHotkey(index.row(), hk);
+        auto previous_owner = media_handler_.ChangeHotkey(id_, index.row(), hk);
         if (previous_owner)
         {
-            int remove_hotkey_id = previous_owner.value().prev_hotkey_id;
+            const auto &prev_owner = previous_owner.value();
+            int remove_hotkey_id = prev_owner.prev_hotkey_id;
             emit RemoveGlobalHotkey(remove_hotkey_id);
 
-            QModelIndex prev_index = this->index(static_cast<int>(previous_owner.value().previous_owner_index), ColumnHotKey);
+            QModelIndex prev_index = this->index(static_cast<int>(prev_owner.previous_owner_index), ColumnHotKey);
             emit dataChanged(prev_index, prev_index, {Qt::DisplayRole});
         }
 
@@ -254,46 +257,40 @@ bool SoundTableModel::setData(const QModelIndex &index, const QVariant &value, i
 
 int SoundTableModel::FindNextMatchRow()
 {
-    if (search_text_.isEmpty())
+    if (search_result_order_.empty())
     {
         return -1;
     }
 
-    const auto &files = media_handler_.GetAllMediaInfo();
-    for (int row = current_search_row_ + 1; row < media_handler_.Size(); ++row)
+    if (current_search_index_ == search_result_order_.size() - 1)
     {
-        const auto &file = files[row];
-        QString name = QString::fromUtf8(file.name.c_str());
-        if (name.contains(search_text_, Qt::CaseInsensitive))
-        {
-            current_search_row_ = row;
-            return row;
-        }
+        current_search_index_ = 0;
+    }
+    else
+    {
+        ++current_search_index_;
     }
 
-    return -1;
+    return search_result_order_.at(current_search_index_);
 }
 
 int SoundTableModel::FindPrevMatchRow()
 {
-    if (search_text_.isEmpty())
+    if (search_result_order_.empty())
     {
         return -1;
     }
 
-    const auto &files = media_handler_.GetAllMediaInfo();
-    for (int row = current_search_row_ - 1; row >= 0; --row)
+    if (current_search_index_ <= 0)
     {
-        const auto &file = files[row];
-        QString name = QString::fromUtf8(file.name.c_str());
-        if (name.contains(search_text_, Qt::CaseInsensitive))
-        {
-            current_search_row_ = row;
-            return row;
-        }
+        current_search_index_ = search_result_order_.size() - 1;
+    }
+    else
+    {
+        --current_search_index_;
     }
 
-    return -1;
+    return search_result_order_.at(current_search_index_);
 }
 
 void SoundTableModel::sort(int column, Qt::SortOrder order)
@@ -320,15 +317,16 @@ void SoundTableModel::sort(int column, Qt::SortOrder order)
             : SortOrder::Descending;
 
     beginResetModel();
-    media_handler_.Sort(field, sort_order);
+    media_handler_.Sort(id_, field, sort_order);
     endResetModel();
 
     StartAutosaveTimer();
+    UpdateSearchCache();
 }
 
 const MediaInfo &SoundTableModel::GetFileInfo(int row) const
 {
-    return media_handler_.GetMediaFileInfo(row);
+    return media_handler_.GetMediaFileInfo(id_, row);
 }
 
 void SoundTableModel::SetPlayingRow(int row)
@@ -338,7 +336,7 @@ void SoundTableModel::SetPlayingRow(int row)
         return;
     }
 
-    uint64_t new_playing_file_id = media_handler_.GetMediaFileInfo(row).id;
+    uint64_t new_playing_file_id = media_handler_.GetMediaFileInfo(id_, row).id;
     if (new_playing_file_id == playing_file_id_)
     {
         return;
@@ -347,9 +345,9 @@ void SoundTableModel::SetPlayingRow(int row)
     int old_row = -1;
     if (playing_file_id_ != INVALID_ID)
     {
-        for (int i = 0; i < media_handler_.Size(); ++i)
+        for (int i = 0; i < media_handler_.GetMediaListSize(id_); ++i)
         {
-            if (playing_file_id_ == media_handler_.GetMediaFileInfo(i).id)
+            if (playing_file_id_ == media_handler_.GetMediaFileInfo(id_, i).id)
             {
                 old_row = i;
                 break;
@@ -374,7 +372,7 @@ bool SoundTableModel::UpdateAvailability(int row)
     }
 
     emit dataChanged(index(row, 0), index(row, ColumnCount - 1), {Qt::ForegroundRole, Qt::FontRole});
-    return media_handler_.UpdateAvailability(row);
+    return media_handler_.UpdateAvailability(id_, row);
 }
 
 void SoundTableModel::DeleteFile(int row)
@@ -384,18 +382,19 @@ void SoundTableModel::DeleteFile(int row)
         return;
     }
 
-    const MediaInfo &media_file = media_handler_.GetMediaFileInfo(row);
+    const MediaInfo &media_file = media_handler_.GetMediaFileInfo(id_, row);
     if (!media_file.hotkey.IsEmpty())
     {
-        int hotkey_id = media_handler_.GetGlobalHotkeyIdByFileId(media_file.id);
+        int hotkey_id = media_handler_.GetGlobalHotkeyIdByHotkey(media_file.hotkey);
         emit RemoveGlobalHotkey(hotkey_id);
     }
 
     beginRemoveRows(QModelIndex(), row, row);
-    media_handler_.DeleteFile(row);
+    media_handler_.DeleteFile(id_, row);
     endRemoveRows();
 
-    autosave_timer_.start();
+    StartAutosaveTimer();
+    UpdateSearchCache();
 }
 
 void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path> &files)
@@ -410,11 +409,12 @@ void SoundTableModel::AddFilesInLibrary(const std::vector<std::filesystem::path>
 
     beginInsertRows(QModelIndex(), old_size, old_size + files_count - 1);
 
-    media_handler_.AddFilesInLibrary(files);
+    media_handler_.AddFilesInLibrary(id_, files);
 
     endInsertRows();
 
     StartAutosaveTimer();
+    UpdateSearchCache();
 }
 
 void SoundTableModel::SaveData()
@@ -425,22 +425,63 @@ void SoundTableModel::SaveData()
 void SoundTableModel::SetSearchText(const QString &text)
 {
     search_text_ = text;
-    if (media_handler_.Size() == 0)
+
+    if (search_text_.isEmpty())
+    {
+        ClearSearchCache();
+    }
+    else
+    {
+        RebuildSearchCache();
+    }
+
+    if (rowCount() > 0)
+    {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1), {Qt::BackgroundRole});
+    }
+}
+
+void SoundTableModel::UpdateSearchCache()
+{
+    if (search_text_.isEmpty() || search_result_order_.empty())
     {
         return;
     }
 
-    emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1), {Qt::BackgroundRole});
+    RebuildSearchCache();
+
+    if (rowCount() > 0)
+    {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1), {Qt::BackgroundRole});
+    }
+}
+
+void SoundTableModel::RebuildSearchCache()
+{
+    ClearSearchCache();
+
+    const auto &files = media_handler_.GetMediaFiles(id_);
+    for (int row = 0; row < files.size(); ++row)
+    {
+        QString name = QString::fromUtf8(files[row].name);
+        if (name.contains(search_text_, Qt::CaseInsensitive))
+        {
+            search_result_order_.push_back(row);
+            search_result_set_.emplace(row);
+        }
+    }
+}
+
+void SoundTableModel::ClearSearchCache()
+{
+    search_result_order_.clear();
+    search_result_set_.clear();
+    current_search_index_ = -1;
 }
 
 bool SoundTableModel::IsValidRow(int row) const
 {
-    if (row >= 0 || row < media_handler_.Size())
-    {
-        return true;
-    }
-
-    return false;
+    return row >= 0 && row < media_handler_.GetMediaListSize(id_);
 }
 
 void SoundTableModel::StartAutosaveTimer()

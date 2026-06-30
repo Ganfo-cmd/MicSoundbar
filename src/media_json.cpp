@@ -28,7 +28,7 @@ std::string MediaJSON::EscapeJsonString(const std::string &path) const
     return result;
 }
 
-bool MediaJSON::Save(const std::vector<MediaInfo> &media_list, uint64_t next_id) const
+bool MediaJSON::Save(const std::vector<MediaList> &media_lists, uint64_t next_list_id, uint64_t next_file_id) const
 {
     std::filesystem::path temp_path = file_path_;
     temp_path += ".tmp";
@@ -41,23 +41,23 @@ bool MediaJSON::Save(const std::vector<MediaInfo> &media_list, uint64_t next_id)
         }
 
         file << "{\n";
-        file << "  \"next_id\": " << next_id << ",\n";
-        file << "  \"media\": [\n";
-
-        for (size_t i = 0; i < media_list.size(); ++i)
+        file << "  \"next_list_id\": " << next_list_id << ",\n";
+        file << "  \"next_file_id\": " << next_file_id << ",\n";
+        file << "  \"lists\": [\n";
+        for (size_t i = 0; i < media_lists.size(); ++i)
         {
-            const MediaInfo &media = media_list[i];
+            const MediaList &media_list = media_lists[i];
             file << "    {\n";
-            file << "      \"id\": " << media.id << ",\n";
-            file << "      \"name\": \"" << EscapeJsonString(media.name) << "\",\n";
-            file << "      \"path\": \"" << EscapeJsonString(media.path) << "\",\n";
-            file << "      \"duration\": " << media.duration << ",\n";
-            file << "      \"hotkey_scan_code\": " << media.hotkey.scan_code << ",\n";
-            file << "      \"hotkey_modifiers\": " << media.hotkey.modifiers << ",\n";
-            file << "      \"hotkey_display\": \"" << EscapeJsonString(media.hotkey.display) << "\"\n";
+            file << "      \"id\": " << media_list.id << ",\n";
+            file << "      \"name\": \"" << EscapeJsonString(media_list.name) << "\",\n";
+            file << "      \"media\": [\n";
+
+            WriteMedia(file, media_list.media);
+
+            file << "      ]\n";
             file << "    }";
 
-            if (i + 1 < media_list.size())
+            if (i + 1 < media_lists.size())
             {
                 file << ",";
             }
@@ -84,12 +84,34 @@ bool MediaJSON::Save(const std::vector<MediaInfo> &media_list, uint64_t next_id)
     return true;
 }
 
-std::vector<MediaInfo> MediaJSON::Load(uint64_t &next_id, bool &success) const
+void MediaJSON::WriteMedia(std::ofstream &file, const std::vector<MediaInfo> &media) const
+{
+    for (size_t i = 0; i < media.size(); ++i)
+    {
+        const MediaInfo &media_info = media[i];
+        file << "        {\n";
+        file << "          \"id\": " << media_info.id << ",\n";
+        file << "          \"name\": \"" << EscapeJsonString(media_info.name) << "\",\n";
+        file << "          \"path\": \"" << EscapeJsonString(media_info.path) << "\",\n";
+        file << "          \"duration\": " << media_info.duration << ",\n";
+        file << "          \"hotkey_scan_code\": " << media_info.hotkey.scan_code << ",\n";
+        file << "          \"hotkey_modifiers\": " << media_info.hotkey.modifiers << ",\n";
+        file << "          \"hotkey_display\": \"" << EscapeJsonString(media_info.hotkey.display) << "\"\n";
+        file << "        }";
+
+        if (i + 1 < media.size())
+        {
+            file << ",";
+        }
+        file << "\n";
+    }
+}
+
+std::vector<MediaList> MediaJSON::Load(uint64_t &next_list_id, uint64_t &next_file_id, bool &success) const
 {
     std::ifstream file(file_path_);
     if (!file)
     {
-        next_id = 1;
         success = false;
         return {};
     }
@@ -97,33 +119,34 @@ std::vector<MediaInfo> MediaJSON::Load(uint64_t &next_id, bool &success) const
     char ch;
     if (!(file >> ch) || ch != '{')
     {
-        next_id = 1;
         success = false;
         return {};
     }
 
-    std::vector<MediaInfo> result;
+    std::vector<MediaList> result;
     for (; file >> ch && ch != '}';)
     {
         if (ch == '"')
         {
             std::string key = LoadString(file);
-            if (!(file >> ch) && ch != ':')
+            if (!(file >> ch) || ch != ':')
             {
-                next_id = 1;
                 success = false;
                 return {};
             }
 
-            if (key == "next_id")
+            if (key == "next_list_id")
             {
-                next_id = LoadId(file);
+                next_list_id = LoadId(file);
             }
-            else if (key == "media")
+            else if (key == "next_file_id")
             {
-                if (file >> ch && ch != '[')
+                next_file_id = LoadId(file);
+            }
+            else if (key == "lists")
+            {
+                if (!(file >> ch) || ch != '[')
                 {
-                    next_id = 1;
                     success = false;
                     return {};
                 }
@@ -132,15 +155,60 @@ std::vector<MediaInfo> MediaJSON::Load(uint64_t &next_id, bool &success) const
                 {
                     if (c == '{')
                     {
-                        result.push_back(LoadMediaInfo(file));
+                        result.emplace_back(LoadMediaList(file));
+                    }
+                }
+            }
+        }
+    }
+    success = true;
+    return result;
+}
+
+MediaList MediaJSON::LoadMediaList(std::ifstream &file) const
+{
+    MediaList list;
+    for (char ch; file >> ch && ch != '}';)
+    {
+        if (ch == '"')
+        {
+            std::string key = LoadString(file);
+            if (!(file >> ch) || ch != ':')
+            {
+                return {};
+            }
+
+            if (key == "id")
+            {
+                list.id = LoadId(file);
+            }
+            else if (key == "name")
+            {
+                file >> std::ws;
+                if (!file.get(ch) || ch != '"')
+                    return {};
+                list.name = LoadString(file);
+            }
+            else if (key == "media")
+            {
+                if (!(file >> ch) || ch != '[')
+                {
+                    return {};
+                }
+
+                auto &media = list.media;
+                for (char c; file >> c && c != ']';)
+                {
+                    if (c == '{')
+                    {
+                        media.emplace_back(LoadMediaInfo(file));
                     }
                 }
             }
         }
     }
 
-    success = true;
-    return result;
+    return list;
 }
 
 MediaInfo MediaJSON::LoadMediaInfo(std::ifstream &file) const

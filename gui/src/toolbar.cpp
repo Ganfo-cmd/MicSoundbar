@@ -1,4 +1,4 @@
-#include "player_page_toolbar.h"
+#include "toolbar.h"
 
 #include <QStyleOptionSlider>
 
@@ -38,10 +38,17 @@ void ToolBar::InitializeSearchBar(QHBoxLayout *toolbar_layout)
     search_line_edit_ = new QLineEdit(this);
     toolbar_layout->addWidget(search_line_edit_);
 
-    connect(search_line_edit_, &QLineEdit::textChanged, this, &ToolBar::SearchTextChanged);
-
     connect(search_line_edit_, &QLineEdit::editingFinished, this, [this]()
             { search_line_edit_->clearFocus(); });
+
+    search_timer_.setSingleShot(true);
+    search_timer_.setInterval(180);
+
+    connect(search_line_edit_, &QLineEdit::textChanged, this, [this]()
+            { search_timer_.start(); });
+
+    connect(&search_timer_, &QTimer::timeout, this, [this]()
+            { emit SearchTextChanged(search_line_edit_->text()); });
 
     up_button_ = new QPushButton(this);
     up_button_->setFixedSize(22, 22);
@@ -73,27 +80,27 @@ void ToolBar::InitializeSearchBar(QHBoxLayout *toolbar_layout)
 
 void ToolBar::InitializeCheckboxes(QHBoxLayout *toolbar_layout)
 {
-    QVBoxLayout *sync_and_sort_checkbox = new QVBoxLayout;
+    QVBoxLayout *checkbox_layout = new QVBoxLayout;
     global_hotkey_checkbox_ = new QCheckBox("Глобальные горячие клавиши", this);
     global_hotkey_checkbox_->setChecked(true);
-    sync_and_sort_checkbox->addWidget(global_hotkey_checkbox_);
+    checkbox_layout->addWidget(global_hotkey_checkbox_);
 
     connect(global_hotkey_checkbox_, &QCheckBox::toggled, this, &ToolBar::GlobalHotkeyEnable);
 
     sync_volume_checkbox_ = new QCheckBox("Синхронизация звука", this);
     sync_volume_checkbox_->setChecked(false);
-    sync_and_sort_checkbox->addWidget(sync_volume_checkbox_);
+    checkbox_layout->addWidget(sync_volume_checkbox_);
 
     connect(sync_volume_checkbox_, &QCheckBox::toggled, this, [this](bool enable)
-            { sync_enable_ = enable; });
+            { sync_volume_enable_ = enable; });
 
     sort_disable_checkbox_ = new QCheckBox("Отключить сортировку", this);
     sort_disable_checkbox_->setChecked(false);
-    sync_and_sort_checkbox->addWidget(sort_disable_checkbox_);
+    checkbox_layout->addWidget(sort_disable_checkbox_);
 
     connect(sort_disable_checkbox_, &QCheckBox::toggled, this, &ToolBar::SortDisable);
 
-    toolbar_layout->addLayout(sync_and_sort_checkbox);
+    toolbar_layout->addLayout(checkbox_layout);
 }
 
 void ToolBar::InitializeVolumeControllers(QHBoxLayout *toolbar_layout)
@@ -122,19 +129,18 @@ void ToolBar::InitializeController(VolumeController &controller, QVBoxLayout *vo
     slider_layout->addWidget(controller.button, 0, Qt::AlignVCenter);
 
     controller.slider = new QSlider(this);
-    auto slider = controller.slider;
-    slider->setRange(0, 100);
-    slider->setOrientation(Qt::Horizontal);
-    slider->setFixedSize(150, 22);
-    slider->setValue(10);
-    slider_layout->addWidget(slider, 0, Qt::AlignVCenter);
+    controller.slider->setRange(0, 100);
+    controller.slider->setOrientation(Qt::Horizontal);
+    controller.slider->setFixedSize(150, 22);
+    controller.slider->setValue(10);
+    slider_layout->addWidget(controller.slider, 0, Qt::AlignVCenter);
 
+    // метка громкости располагается в ручную с помощью метода UpdateVolumeLabel
     controller.label = new QLabel(this);
-    auto label = controller.label;
-    label->hide();
-    label->setFixedSize(28, 18);
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet(R"(
+    controller.label->hide();
+    controller.label->setFixedSize(28, 18);
+    controller.label->setAlignment(Qt::AlignCenter);
+    controller.label->setStyleSheet(R"(
     QLabel {
         background-color: white;
         color: rgba(138, 138, 138, 1);
@@ -151,7 +157,7 @@ void ToolBar::InitializeMicConnections()
 
     connect(controller.slider, &QSlider::valueChanged, this, [this, &controller](int volume)
             {
-                if (sync_enable_)
+                if (sync_volume_enable_)
                 {
                     QSignalBlocker blocker(headphones_controller_.slider);
                     headphones_controller_.slider->setValue(volume);
@@ -181,7 +187,7 @@ void ToolBar::InitializeHeadphonesConnections()
 
     connect(controller.slider, &QSlider::valueChanged, this, [this, &controller](int volume)
             {
-                if (sync_enable_)
+                if (sync_volume_enable_)
                 {
                     QSignalBlocker blocker(microphone_controller_.slider);
                     microphone_controller_.slider->setValue(volume);
@@ -206,15 +212,13 @@ void ToolBar::InitializeHeadphonesConnections()
 
 void ToolBar::InitializeSliderLabelConnections(VolumeController &controller)
 {
-    auto slider = controller.slider;
-
-    connect(slider, &QSlider::sliderPressed, this, [this, &controller]()
+    connect(controller.slider, &QSlider::sliderPressed, this, [this, &controller]()
             { UpdateVolumeLabel(controller.slider->value(), controller); });
 
-    connect(slider, &QSlider::sliderMoved, this, [this, &controller](int value)
+    connect(controller.slider, &QSlider::sliderMoved, this, [this, &controller](int value)
             { UpdateVolumeLabel(value, controller); });
 
-    connect(slider, &QSlider::sliderReleased, this, [&controller]()
+    connect(controller.slider, &QSlider::sliderReleased, this, [&controller]()
             { controller.label->hide(); });
 }
 

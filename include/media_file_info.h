@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <vector>
 
 struct Hotkey
 {
@@ -29,6 +30,13 @@ struct MediaInfo
     bool available = true;
 };
 
+struct MediaList
+{
+    uint64_t id;
+    std::string name;
+    std::vector<MediaInfo> media;
+};
+
 enum class SortField
 {
     Name,
@@ -46,4 +54,16 @@ struct ChangeHotkeyResult
 {
     size_t previous_owner_index;
     int prev_hotkey_id = -1;
+};
+
+struct MediaLocation
+{
+    uint64_t list_id;
+    size_t file_index;
+};
+
+struct MediaIndexes
+{
+    size_t list_index;
+    size_t file_index;
 };

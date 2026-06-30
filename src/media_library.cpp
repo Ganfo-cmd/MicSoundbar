@@ -2,76 +2,104 @@
 
 #include <algorithm>
 #include <cassert>
+#include <stdexcept>
+#include <utility>
 
-void MediaLibrary::AddFile(const MediaInfo &file)
+void MediaLibrary::SetData(std::vector<MediaList> data)
 {
-    if (!file.hotkey.IsEmpty())
+    media_lists_ = std::move(data);
+
+    list_index_by_list_id_.clear();
+    media_location_by_hotkey_.clear();
+
+    last_hotkey_id_ = 0;
+    id_to_hotkey_.clear();
+    hotkey_to_id_.clear();
+
+    for (size_t list_index = 0; list_index < media_lists_.size(); ++list_index)
     {
-        size_t index = media_files_.size();
-        AddHotkeyData(file, index);
-    }
+        const MediaList &list = media_lists_[list_index];
+        list_index_by_list_id_[list.id] = list_index;
 
-    media_files_.push_back(file);
-}
-
-void MediaLibrary::AddFile(MediaInfo &&file)
-{
-    if (!file.hotkey.IsEmpty())
-    {
-        size_t index = media_files_.size();
-        AddHotkeyData(file, index);
-    }
-
-    media_files_.push_back(std::move(file));
-}
-
-void MediaLibrary::DeleteFile(size_t index)
-{
-    if (index >= media_files_.size())
-    {
-        return;
-    }
-
-    MediaInfo &media = media_files_[index];
-    if (!media.hotkey.IsEmpty())
-    {
-        DeleteHotkeyData(media);
-    }
-
-    for (auto &[id, idx] : index_by_id_with_hotkey_)
-    {
-        if (idx > index)
+        const std::vector<MediaInfo> &media = list.media;
+        for (size_t file_index = 0; file_index < media.size(); ++file_index)
         {
-            --idx;
+            const Hotkey &hotkey = media[file_index].hotkey;
+            if (!hotkey.IsEmpty())
+            {
+                AddHotkeyData(list.id, file_index, hotkey);
+            }
+        }
+    }
+}
+
+void MediaLibrary::RenameList(uint64_t list_id, std::string new_name)
+{
+    size_t index = list_index_by_list_id_.at(list_id);
+    media_lists_[index].name = std::move(new_name);
+}
+
+void MediaLibrary::AddList(uint64_t &next_list_id, std::string name)
+{
+    MediaList list;
+    list.id = next_list_id++;
+    list.name = std::move(name);
+
+    list_index_by_list_id_[list.id] = media_lists_.size();
+    media_lists_.push_back(std::move(list));
+}
+
+void MediaLibrary::AddFiles(uint64_t list_id, std::vector<MediaInfo> &&file_list)
+{
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+
+    for (MediaInfo &media_info : file_list)
+    {
+        media.push_back(std::move(media_info));
+    }
+}
+
+void MediaLibrary::DeleteFile(uint64_t list_id, size_t index)
+{
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    assert(index < media.size());
+
+    MediaInfo &media_info = media.at(index);
+    if (!media_info.hotkey.IsEmpty())
+    {
+        media_location_by_hotkey_.erase(media_info.hotkey);
+    }
+
+    for (auto &[_, location] : media_location_by_hotkey_)
+    {
+        if (list_id == location.list_id && location.file_index > index)
+        {
+            --location.file_index;
         }
     }
 
-    media_files_.erase(media_files_.begin() + index);
+    media.erase(media.begin() + index);
 }
 
-void MediaLibrary::RenameFile(size_t index, std::string new_name)
+void MediaLibrary::RenameFile(uint64_t list_id, size_t index, std::string new_name)
 {
-    if (index >= media_files_.size())
-    {
-        return;
-    }
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    assert(index < media.size());
 
-    media_files_[index].name = std::move(new_name);
+    media[index].name = std::move(new_name);
 }
 
-void MediaLibrary::MoveFile(size_t from, size_t to)
+void MediaLibrary::MoveFile(uint64_t list_id, size_t from, size_t to)
 {
-    if (from >= media_files_.size() || to >= media_files_.size())
-    {
-        return;
-    }
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    assert(from < media.size() && to < media.size());
 
     if (from == to)
     {
         return;
     }
 
-    auto first = media_files_.begin();
+    auto first = media.begin();
     if (from < to)
     {
         std::rotate(first + from, first + from + 1, first + to + 1);
@@ -81,15 +109,16 @@ void MediaLibrary::MoveFile(size_t from, size_t to)
         std::rotate(first + to, first + from, first + from + 1);
     }
 
-    UpdateIndexMap();
+    UpdateHotkeyLocation(list_id);
 }
 
-void MediaLibrary::Sort(SortField field, SortOrder order)
+void MediaLibrary::Sort(uint64_t list_id, SortField field, SortOrder order)
 {
-    std::sort(media_files_.begin(), media_files_.end(),
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+
+    std::sort(media.begin(), media.end(),
               [field, order](const MediaInfo &left, const MediaInfo &right)
               {
-                  bool less = false;
                   switch (field)
                   {
                   case SortField::Name:
@@ -131,167 +160,154 @@ void MediaLibrary::Sort(SortField field, SortOrder order)
                   return false;
               });
 
-    UpdateIndexMap();
+    UpdateHotkeyLocation(list_id);
 }
 
-void MediaLibrary::UpdateAvailability(bool is_available, size_t row)
+void MediaLibrary::UpdateAvailability(uint64_t list_id, bool is_available, size_t row)
 {
-    if (row >= media_files_.size())
-    {
-        return;
-    }
-    media_files_[row].available = is_available;
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    assert(row < media.size());
+    media[row].available = is_available;
 }
 
 /*Возвращает позицию предыдущего владельца горячей клавиши и id горячей клавиши*/
-std::optional<ChangeHotkeyResult> MediaLibrary::ChangeHotkey(size_t index, const Hotkey &hotkey)
+std::optional<ChangeHotkeyResult> MediaLibrary::ChangeHotkey(uint64_t list_id, size_t file_index, const Hotkey &hotkey)
 {
     std::optional<ChangeHotkeyResult> result;
-    if (index >= media_files_.size())
-    {
-        return std::nullopt;
-    }
 
-    MediaInfo &info = media_files_[index];
+    std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    assert(file_index < media.size());
+
+    MediaInfo &info = media[file_index];
     if (!info.hotkey.IsEmpty())
     {
-        DeleteHotkeyData(info);
-        info.hotkey = {};
+        DeleteHotkeyData(info.hotkey);
     }
 
     if (!hotkey.IsEmpty())
     {
-        auto it = id_by_hotkeys_.find(hotkey);
-        if (it != id_by_hotkeys_.end())
+        auto it = media_location_by_hotkey_.find(hotkey);
+        if (it != media_location_by_hotkey_.end())
         {
-            uint64_t previous_file_id = it->second;
-            auto it_index = index_by_id_with_hotkey_.find(previous_file_id);
-            assert(it_index != index_by_id_with_hotkey_.end());
+            size_t previous_owner_index = it->second.file_index;
 
-            size_t previous_owner_index = it_index->second;
-            MediaInfo &prev_owner = media_files_.at(previous_owner_index);
-
-            ChangeHotkeyResult struct_res{previous_owner_index, DeleteHotkeyData(prev_owner)};
-            result = struct_res;
-
-            prev_owner.hotkey = {};
+            result = ChangeHotkeyResult{previous_owner_index, DeleteHotkeyData(hotkey)};
         }
 
         info.hotkey = hotkey;
-        AddHotkeyData(info, index);
+        AddHotkeyData(list_id, file_index, hotkey);
     }
 
     return result;
 }
 
-const MediaInfo &MediaLibrary::GetMediaFileInfo(size_t index) const
+const MediaInfo &MediaLibrary::GetMediaFileInfo(uint64_t list_id, size_t file_index) const
 {
-    return media_files_.at(index);
+    const std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    assert(file_index < media.size());
+    return media[file_index];
 }
 
-const std::vector<MediaInfo> &MediaLibrary::GetAllMediaInfo() const
+const std::vector<MediaList> &MediaLibrary::GetAllMediaLists() const
 {
-    return media_files_;
+    return media_lists_;
 }
 
-size_t MediaLibrary::Size() const
+size_t MediaLibrary::GetMediaListSize(uint64_t list_id) const
 {
-    return media_files_.size();
+    const std::vector<MediaInfo> &media = GetMediaFiles(list_id);
+    return media.size();
 }
 
-std::optional<size_t> MediaLibrary::GetMediaFileIndexByHotkey(const Hotkey &hotkey) const
+const std::vector<MediaInfo> &MediaLibrary::GetMediaFiles(uint64_t list_id) const
 {
-    std::optional<size_t> res;
+    size_t index = list_index_by_list_id_.at(list_id);
+    return media_lists_[index].media;
+}
 
-    auto it = id_by_hotkeys_.find(hotkey);
-    if (it == id_by_hotkeys_.end())
+std::vector<MediaInfo> &MediaLibrary::GetMediaFiles(uint64_t list_id)
+{
+    return const_cast<std::vector<MediaInfo> &>(std::as_const(*this).GetMediaFiles(list_id));
+}
+
+std::optional<MediaIndexes> MediaLibrary::GetMediaFileIndexesByHotkey(const Hotkey &hotkey) const
+{
+    auto it = media_location_by_hotkey_.find(hotkey);
+    if (it == media_location_by_hotkey_.end())
     {
         return std::nullopt;
     }
 
-    res = index_by_id_with_hotkey_.at(it->second);
-    return res;
+    const MediaLocation &location = it->second;
+    size_t list_index = list_index_by_list_id_.at(location.list_id);
+    return MediaIndexes{list_index, location.file_index};
 }
 
 std::vector<std::pair<Hotkey, int>> MediaLibrary::GetGlobalHotkeys() const
 {
     std::vector<std::pair<Hotkey, int>> res;
-    for (const auto &[hotkey_id, media_id] : media_id_by_hotkey_id_)
+    res.reserve(hotkey_to_id_.size());
+    for (const auto &[hotkey, hotkey_id] : hotkey_to_id_)
     {
-        auto it = index_by_id_with_hotkey_.find(media_id);
-        assert(it != index_by_id_with_hotkey_.end());
-
-        size_t index = it->second;
-        assert(index < media_files_.size());
-
-        res.push_back({media_files_.at(index).hotkey, hotkey_id});
+        res.push_back({hotkey, hotkey_id});
     }
 
     return res;
 }
 
-int MediaLibrary::GetGlobalHotkeyIdByFileId(uint64_t file_id) const
+int MediaLibrary::GetGlobalHotkeyIdByHotkey(const Hotkey &hotkey) const
 {
-    auto hotkey_id_it = hotkey_id_by_media_id_.find(file_id);
-    assert(hotkey_id_it != hotkey_id_by_media_id_.end());
-
-    return hotkey_id_it->second;
+    return hotkey_to_id_.at(hotkey);
 }
 
-size_t MediaLibrary::GetMediaFileIndexByGlobalHotkeyId(int hotkey_id) const
+const Hotkey &MediaLibrary::GetHotkeyByHotkeyId(int hotkey_id) const
 {
-    auto it_media_id = media_id_by_hotkey_id_.find(hotkey_id);
-    assert(it_media_id != media_id_by_hotkey_id_.end());
-
-    uint64_t media_id = it_media_id->second;
-
-    auto it_index = index_by_id_with_hotkey_.find(media_id);
-    assert(it_index != index_by_id_with_hotkey_.end());
-
-    return it_index->second;
+    return id_to_hotkey_.at(hotkey_id);
 }
 
 int MediaLibrary::GetLastHotkeyId() const
 {
-    return current_hotkey_id_;
+    return last_hotkey_id_;
 }
 
-void MediaLibrary::UpdateIndexMap()
+void MediaLibrary::UpdateHotkeyLocation(uint64_t list_id)
 {
-    index_by_id_with_hotkey_.clear();
-
-    for (size_t i = 0; i < media_files_.size(); ++i)
+    size_t list_index = list_index_by_list_id_.at(list_id);
+    const std::vector<MediaInfo> &media = media_lists_[list_index].media;
+    for (size_t file_index = 0; file_index < media.size(); ++file_index)
     {
-        const MediaInfo &info = media_files_[i];
-        if (!info.hotkey.IsEmpty())
+        const Hotkey &hotkey = media[file_index].hotkey;
+        if (!hotkey.IsEmpty())
         {
-            index_by_id_with_hotkey_[info.id] = i;
+            media_location_by_hotkey_[hotkey] = {list_id, file_index};
         }
     }
 }
 
-void MediaLibrary::AddHotkeyData(const MediaInfo &file, size_t index)
+void MediaLibrary::AddHotkeyData(uint64_t list_id, size_t file_index, const Hotkey &hotkey)
 {
-    id_by_hotkeys_[file.hotkey] = file.id;
-    index_by_id_with_hotkey_[file.id] = index;
+    media_location_by_hotkey_[hotkey] = {list_id, file_index};
 
-    ++current_hotkey_id_;
-    media_id_by_hotkey_id_[current_hotkey_id_] = file.id;
-    hotkey_id_by_media_id_[file.id] = current_hotkey_id_;
+    const int hotkey_id = ++last_hotkey_id_;
+    id_to_hotkey_[hotkey_id] = hotkey;
+    hotkey_to_id_[hotkey] = hotkey_id;
 }
 
 /*Возвращает id удаляемой горячей клавиши*/
-int MediaLibrary::DeleteHotkeyData(const MediaInfo &file)
+int MediaLibrary::DeleteHotkeyData(const Hotkey &hotkey)
 {
-    id_by_hotkeys_.erase(file.hotkey);
-    index_by_id_with_hotkey_.erase(file.id);
+    auto it = media_location_by_hotkey_.find(hotkey);
+    assert(it != media_location_by_hotkey_.end());
 
-    auto hotkey_id_it = hotkey_id_by_media_id_.find(file.id);
-    assert(hotkey_id_it != hotkey_id_by_media_id_.end());
+    MediaLocation location = it->second;
+    media_location_by_hotkey_.erase(it);
 
-    int hotkey_id = hotkey_id_it->second;
-    media_id_by_hotkey_id_.erase(hotkey_id);
-    hotkey_id_by_media_id_.erase(file.id);
+    int hotkey_id = hotkey_to_id_[hotkey];
+    hotkey_to_id_.erase(hotkey);
+    id_to_hotkey_.erase(hotkey_id);
+
+    size_t list_index = list_index_by_list_id_[location.list_id];
+    media_lists_[list_index].media[location.file_index].hotkey = {};
 
     return hotkey_id;
 }

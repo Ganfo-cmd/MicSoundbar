@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QTimer>
 #include <QIcon>
 #include <QLabel>
 #include <QWidget>
@@ -33,9 +34,9 @@ signals:
 private:
     struct VolumeController
     {
+        QPushButton *button = nullptr;
         QSlider *slider = nullptr;
         QLabel *label = nullptr;
-        QPushButton *button = nullptr;
 
         QIcon icon;
         QIcon muted_icon;
@@ -43,6 +44,7 @@ private:
         bool muted = false;
     };
 
+    QTimer search_timer_;
     QLineEdit *search_line_edit_ = nullptr;
     QPushButton *up_button_ = nullptr;
     QPushButton *down_button_ = nullptr;
@@ -51,7 +53,7 @@ private:
 
     QCheckBox *sort_disable_checkbox_ = nullptr;
 
-    bool sync_enable_ = false;
+    bool sync_volume_enable_ = false;
     QCheckBox *sync_volume_checkbox_ = nullptr;
 
     VolumeController microphone_controller_;
@@ -62,7 +64,7 @@ private:
     void InitializeSearchBar(QHBoxLayout *toolbar_layout);
     void InitializeCheckboxes(QHBoxLayout *toolbar_layout);
     void InitializeVolumeControllers(QHBoxLayout *toolbar_layout);
-    
+
     void InitializeController(VolumeController &controller, QVBoxLayout *volume_control_layout,
                               const QIcon &icon, const QIcon &muted_icon);
 

@@ -3,22 +3,28 @@
 
 #include <algorithm>
 
-std::vector<MediaInfo> MediaScanner::ScanFolder(const std::filesystem::path &folder_path, uint64_t &next_id) const
+std::vector<MediaList> MediaScanner::ScanFolder(const std::filesystem::path &folder_path, uint64_t &next_list_id, uint64_t &next_file_id) const
 {
     if (!std::filesystem::exists(folder_path))
     {
         return {};
     }
 
-    std::vector<MediaInfo> result;
+    std::vector<MediaList> result;
+
+    MediaList list;
+    list.id = next_list_id++;
+    list.name = "MP3 файлы";
     for (const auto &file : std::filesystem::directory_iterator(folder_path))
     {
-        auto info = ScanFile(file.path(), next_id);
+        auto info = ScanFile(file.path(), next_file_id);
         if (info.has_value())
         {
-            result.push_back(info.value());
+            list.media.push_back(std::move(info.value()));
         }
     }
+
+    result.push_back(list);
     return result;
 }
 

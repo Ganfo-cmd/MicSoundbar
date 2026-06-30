@@ -11,24 +11,28 @@ public:
     MediaLibrary() = default;
     ~MediaLibrary() = default;
 
-    void AddFile(const MediaInfo &file);
-    void AddFile(MediaInfo &&file);
-    void DeleteFile(size_t index);
-    void RenameFile(size_t index, std::string new_name);
-    void MoveFile(size_t from, size_t to);
-    void Sort(SortField field, SortOrder order);
-    void UpdateAvailability(bool is_available, size_t row);
-    std::optional<ChangeHotkeyResult> ChangeHotkey(size_t index, const Hotkey &hotkey);
+    void SetData(std::vector<MediaList> data);
 
-    size_t Size() const;
+    void RenameList(uint64_t list_id, std::string name);
+    void AddList(uint64_t &next_list_id, std::string new_name);
 
-    const MediaInfo &GetMediaFileInfo(size_t index) const;
-    const std::vector<MediaInfo> &GetAllMediaInfo() const;
-    std::optional<size_t> GetMediaFileIndexByHotkey(const Hotkey &hotkey) const;
+    void AddFiles(uint64_t list_id, std::vector<MediaInfo> &&file_list);
+    void DeleteFile(uint64_t list_id, size_t index);
+    void RenameFile(uint64_t list_id, size_t index, std::string new_name);
+    void MoveFile(uint64_t list_id, size_t from, size_t to);
+    void Sort(uint64_t list_id, SortField field, SortOrder order);
+    void UpdateAvailability(uint64_t list_id, bool is_available, size_t row);
+    std::optional<ChangeHotkeyResult> ChangeHotkey(uint64_t list_id, size_t file_index, const Hotkey &hotkey);
 
+    size_t GetMediaListSize(uint64_t list_id) const;
+    const std::vector<MediaInfo> &GetMediaFiles(uint64_t list_id) const;
+    const MediaInfo &GetMediaFileInfo(uint64_t list_id, size_t index) const;
+    const std::vector<MediaList> &GetAllMediaLists() const;
+
+    std::optional<MediaIndexes> GetMediaFileIndexesByHotkey(const Hotkey &hotkey) const;
     std::vector<std::pair<Hotkey, int>> GetGlobalHotkeys() const;
-    int GetGlobalHotkeyIdByFileId(uint64_t file_id) const;
-    size_t GetMediaFileIndexByGlobalHotkeyId(int hotkey_id) const;
+    int GetGlobalHotkeyIdByHotkey(const Hotkey &hotkey) const;
+    const Hotkey &GetHotkeyByHotkeyId(int hotkey_id) const;
     int GetLastHotkeyId() const;
 
 private:
@@ -43,15 +47,18 @@ private:
         }
     };
 
-    std::vector<MediaInfo> media_files_;
-    std::unordered_map<uint64_t, size_t> index_by_id_with_hotkey_;
-    std::unordered_map<Hotkey, uint64_t, HotkeyHash> id_by_hotkeys_;
+    std::vector<MediaList> media_lists_;
+    std::unordered_map<uint64_t, size_t> list_index_by_list_id_;
 
-    int current_hotkey_id_ = 0;
-    std::unordered_map<int, uint64_t> media_id_by_hotkey_id_;
-    std::unordered_map<uint64_t, int> hotkey_id_by_media_id_;
+    std::unordered_map<Hotkey, MediaLocation, HotkeyHash> media_location_by_hotkey_;
 
-    void UpdateIndexMap();
-    void AddHotkeyData(const MediaInfo &file, size_t index);
-    int DeleteHotkeyData(const MediaInfo &file);
+    int last_hotkey_id_ = 0;
+    std::unordered_map<int, Hotkey> id_to_hotkey_;
+    std::unordered_map<Hotkey, int, HotkeyHash> hotkey_to_id_;
+
+    std::vector<MediaInfo> &GetMediaFiles(uint64_t list_id);
+
+    void UpdateHotkeyLocation(uint64_t list_id);
+    void AddHotkeyData(uint64_t list_id, size_t file_index, const Hotkey &hotkey);
+    int DeleteHotkeyData(const Hotkey &hotkey);
 };

@@ -21,7 +21,7 @@ class SoundTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    SoundTableModel(InterfaceMediaFileHandler &media_handler, QObject *parent = nullptr);
+    SoundTableModel(InterfaceMediaFileHandler &media_handler, uint64_t id, QObject *parent = nullptr);
     ~SoundTableModel() = default;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -56,16 +56,25 @@ public slots:
     void SetSearchText(const QString &text);
 
 signals:
-    void AddGlobalHotkey(const Hotkey& hotkey, int hotkey_id);
+    void AddGlobalHotkey(const Hotkey &hotkey, int hotkey_id);
     void RemoveGlobalHotkey(int hotkey_id);
 
 private:
-    QTimer autosave_timer_;
-    QString search_text_;
-    int current_search_row_ = -1;
-    uint64_t playing_file_id_ = INVALID_ID;
+    uint64_t id_;
     InterfaceMediaFileHandler &media_handler_;
+
+    QTimer autosave_timer_;
+    uint64_t playing_file_id_ = INVALID_ID;
+
+    QString search_text_;
+    int current_search_index_ = -1;
+    std::vector<int> search_result_order_;
+    std::unordered_set<int> search_result_set_;
 
     bool IsValidRow(int row) const;
     void StartAutosaveTimer();
+
+    void UpdateSearchCache();
+    void RebuildSearchCache();
+    void ClearSearchCache();
 };
