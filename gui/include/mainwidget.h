@@ -1,11 +1,6 @@
 #ifndef MAINWIDGET_H
 #define MAINWIDGET_H
 
-#include <windows.h>
-#undef DeleteFile
-#undef PlaySound
-#undef FindText
-
 #include "interface_player.h"
 #include "interface_media_handler.h"
 #include "media_file_info.h"
@@ -74,7 +69,7 @@ private:
 
     bool global_hotkey_enable_ = true;
     int global_hotkey_enable_id = 1000;
-    UINT global_hotkey_enable_vk = VK_F1;
+    uint32_t global_hotkey_enable_vk = 112; // F1
 
     ToolBar *toolbar_ = nullptr;
     PlayerControlWidget *control_widget_ = nullptr;

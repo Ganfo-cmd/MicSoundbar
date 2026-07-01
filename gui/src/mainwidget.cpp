@@ -1,5 +1,6 @@
 #include "mainwidget.h"
 #include "list_widget_delegate.h"
+#include "winapi_wrapper.h"
 
 #include <QLabel>
 #include <QPushButton>
@@ -9,8 +10,6 @@
 #include <QKeyEvent>
 #include <QKeySequenceEdit>
 #include <QMenu>
-
-#include <string>
 
 MainWidget::MainWidget(AudioInterfacePlayer &player, InterfaceMediaFileHandler &media_handler, QWidget *parent)
     : media_handler_(media_handler), QWidget(parent)

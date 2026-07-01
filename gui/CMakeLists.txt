@@ -15,6 +15,7 @@ set(GUI_Headers
     include/list_widget_delegate.h
     include/toolbar.h
     include/player_control_widget.h
+    include/winapi_wrapper.h
 )
 
 set(GUI_Sources
