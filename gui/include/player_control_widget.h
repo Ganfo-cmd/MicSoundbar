@@ -6,6 +6,7 @@
 #include <QSlider>
 #include <QTimer>
 #include <QHBoxLayout>
+#include <QLabel>
 
 class PlayerControlWidget : public QWidget
 {
@@ -24,12 +25,17 @@ public slots:
 private:
     AudioInterfacePlayer &player_;
 
+    int last_second_ = -1;
+    QLabel *duration_label_ = nullptr;
+
     QSlider *progress_slider_ = nullptr;
     QTimer *progress_timer_ = nullptr;
     static constexpr int ProgressSliderScale = 1000;
 
     void InitializeUI();
+    void InitializeDuration(QHBoxLayout *main_layout);
     void InitializeSlider(QHBoxLayout *main_layout);
 
     void ActivateProgressSlider();
+    void UpdateDurationLabel(int current, int total);
 };

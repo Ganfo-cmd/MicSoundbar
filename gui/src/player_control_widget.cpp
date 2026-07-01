@@ -11,9 +11,18 @@ void PlayerControlWidget::InitializeUI()
     QHBoxLayout *main_layout = new QHBoxLayout(this);
 
     main_layout->setSpacing(0);
-    main_layout->setContentsMargins(0, 0, 0, 0);
+    main_layout->setContentsMargins(5, 0, 0, 0);
 
+    InitializeDuration(main_layout);
     InitializeSlider(main_layout);
+}
+
+void PlayerControlWidget::InitializeDuration(QHBoxLayout *main_layout)
+{
+    duration_label_ = new QLabel("00:00 / 00:00", this);
+    duration_label_->setFixedWidth(70);
+
+    main_layout->addWidget(duration_label_);
 }
 
 void PlayerControlWidget::InitializeSlider(QHBoxLayout *main_layout)
@@ -53,17 +62,36 @@ void PlayerControlWidget::InitializeSlider(QHBoxLayout *main_layout)
 
     connect(progress_timer_, &QTimer::timeout, this, [this]()
             {
-                if(!player_.IsPlaying())
+                if (!player_.IsPlaying())
                 {
                     progress_timer_->stop();
                     progress_slider_->setValue(0);
                     progress_slider_->setEnabled(false);
-                    return;                    
+
+                    last_second_ = -1;
+                    duration_label_->setText("00:00 / 00:00");
+
+                    return;
                 }
 
-                if (!progress_slider_->isSliderDown())
+                int current;
+                if (progress_slider_->isSliderDown())
                 {
-                    progress_slider_->setValue(player_.GetCurrentPosition() * ProgressSliderScale);
+                    current = progress_slider_->value() / ProgressSliderScale;
+                }
+                else
+                {
+                    double position = player_.GetCurrentPosition();
+                    progress_slider_->setValue(position * ProgressSliderScale);
+
+                    current = static_cast<int>(position);
+                }
+
+               
+                if (current != last_second_)
+                {
+                    last_second_ = current;
+                    UpdateDurationLabel(current, static_cast<int>(player_.GetDuration()));
                 } });
 
     connect(progress_slider_, &QSlider::sliderReleased, this, [this]()
@@ -85,9 +113,25 @@ void PlayerControlWidget::StopPlaying()
 
 void PlayerControlWidget::ActivateProgressSlider()
 {
-    progress_slider_->setRange(0, player_.GetDuration() * ProgressSliderScale);
+    double total_duration = player_.GetDuration();
+    progress_slider_->setRange(0, total_duration * ProgressSliderScale);
     progress_slider_->setEnabled(true);
+
+    UpdateDurationLabel(0, static_cast<int>(total_duration));
+
     progress_timer_->start(25);
+}
+
+void PlayerControlWidget::UpdateDurationLabel(int current, int total)
+{
+    auto format = [](int sec)
+    {
+        return QString("%1:%2")
+            .arg(sec / 60)
+            .arg(sec % 60, 2, 10, QChar('0'));
+    };
+
+    duration_label_->setText(format(current) + " / " + format(total));
 }
 
 void PlayerControlWidget::ChangeMicVolume(int volume)
